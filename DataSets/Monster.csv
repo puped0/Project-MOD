@@ -1,0 +1,11 @@
+﻿Name,Level,ModelID,AttackEffectRUID,AttackSoundRUID,AttackEffectDelay,HitSoundRUID,DeadSoundRUID,KoreanName,ProductionTime,MaxHp,Attack,Defence,AttackType,DieDelay,HitDelay,ImmuneCooldown,AttackDelay,AttackCooldown,AttackRange_x,AttackRange_y,AttackOffset_x,AttackOffset_y,MaxAttackCount
+Slime,1,model://46895ae3-f5cf-4af0-a779-be2fe7374159,-,-,-,4623a7a5a7de4e09891c3f0a70f6fb39,79c80c07bf104fedada12695846b09c4,슬라임,30,500,32,10,Body,1,0.5,0.1,0,1,h,h,0,0,1
+OrangeMushroom,1,model://5ebba111-fdea-4935-937f-378099745831,-,-,-,0597dba591384ee6b38ea66dc5c6aef4,9f9df446cc81446ea132ba39a5e7c44b,주황버섯,30,500,32,10,Body,1,0.5,0.1,0,1,h,h,0,0,1
+RibbonPig,1,model://3908fb00-23d0-4d45-b741-e59ca725da3c,-,-,-,f4c31b88fc6b4d949d546412cf188f51,cafd34c902ba4af2a8747736465a8fb8,리본돼지,30,750,40,7,Body,1,0.5,0.1,0,1,h,h,0,0,1
+StoneGolem,2,model://73b6e1c5-c93f-4460-b6b1-6149cd013bd8,-,-,-,f4c31b88fc6b4d949d546412cf188f51,8c17778a464340899f795297bcda78d1,스톤골렘,55,3000,70,100,Body,1,0.5,0.1,0,1,h,h,0,0,3
+Mushmom,3,model://650594c0-9bf5-47e2-b995-7fe53aafe462,136f140de017400ca6f88e4b16e5e2db,223a4a355e68494d8438f29946027a18,0.1,f4c31b88fc6b4d949d546412cf188f51,9f9df446cc81446ea132ba39a5e7c44b,머쉬맘,100,8000,200,110,Normal,1,0.5,0.1,1,2,3.5,2,0,0,5
+KingSlime,3,model://2d08e396-90c0-4603-99cc-4ae6ae0aebfe,2c1d9184edac4ecfa606d37862b71ebd,91244f6929e04bc882804acf7a820cf0,0.3,5ef32446ef744f97817a94371f2fb4b0,5ef32446ef744f97817a94371f2fb4b0,킹슬라임,110,7000,220,100,Normal,1,0.5,0.1,1,2,3.5,2,0,0,5
+BlueMushroom,1,model://8844c36b-2d0d-4a4c-a786-26650c57df38,-,-,-,0597dba591384ee6b38ea66dc5c6aef4,7cb47e8521c24caa856448931e6a4b30,파란버섯,40,550,35,12,Body,1,0.5,0.1,0,1,h,h,0,0,1
+Stump,1,model://c4997ee7-fff2-4206-90e5-160b1d2e623e,-,-,-,b5430bb5b1da4095a3033a408bdbffe3,5a1056a232dd422d933f7e9714c24de5,스텀프,30,700,20,15,Body,1,0.5,0.1,0,1,h,h,0,0,1
+WildBoar,2,model://46e3d34d-867c-40b3-b0b3-43bd66792209,-,-,-,99a644b128b347e892a23011eca61cde,d0dc707313934804b4c2c50942154382,와일드보어,50,1700,100,50,Body,1,0.5,0.1,0,1,h,h,0,0,2
+Bubbling,2,model://33c6f542-d3e6-40d5-b61b-56bc76068092,-,-,-,dda2f9f4523f48cb9b3799d5dfa53a73,a18ad389cdbc4e53aebf55c12e35ea28,버블링,55,2000,110,40,Body,1,0.5,0.1,0,1,h,h,0,0,2

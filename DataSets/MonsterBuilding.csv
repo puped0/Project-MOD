@@ -1,0 +1,7 @@
+﻿Name,AttackEffectRUID,AttackSoundRUID,HitSoundRUID,DestroySoundRUID,Level,ProductionSpeed,MaxHp,Attack,AttackRange_x,AttackRange_y,AttackOffset_x,AttackOffset_y,AttackCooldown,Defence,Types,SpawnCount,1,2,3,4,5,6
+BigSpawner1,d6459d1f81af4bf8804d5cfb2ededa95,5c5d26576ac94474a341966a33a89bf3,6e98a26ba4104987ba66ea4e958df17e,eccd0d2183ec4e20b436648760b0781a,3,3,50000,2000,5,2,0,0,10,500,4,1111,OrangeMushroom,Slime,BlueMushroom,Mushmom,,
+SmallSpawner1,9a4f1f2b15be4ba488287e585b3598a0,5f100db0c97746d2b3aa2a4c92c1d6e0,592df61875b041e6bcfb6a6cb833013d,0ea3466239134d5f980a02eb64e27740,1,1,12500,500,5,2,0,0,10,125,3,111,OrangeMushroom,Slime,BlueMushroom,,,
+SmallSpawner2,9a4f1f2b15be4ba488287e585b3598a0,5f100db0c97746d2b3aa2a4c92c1d6e0,09fc3748c51c48758d7206df884aa982,0c10526afba64323818e19b1e5c422e0,1,1,12500,500,5,2,0,0,10,125,3,111,OrangeMushroom,RibbonPig,Stump,,,
+MiddleSpawner1,71d205b594ff40c3aa713773d92ea9fa,3be73fa1660a4512bacdb883f8e70a09,961b33fbbcdb419e8b0ed2a3c5883392,0660d0af2e7f40c79975e6f26d6f6a89,2,2,25000,1000,5,2,0,0,10,250,4,1111,Slime,RibbonPig,StoneGolem,OrangeMushroom,,
+BigSpawner2,d6459d1f81af4bf8804d5cfb2ededa95,5c5d26576ac94474a341966a33a89bf3,5201359f1fd2458ab8b09dbbbc70f493,40d6bab126454acdaaf4608747a70ef9,3,3,50000,2000,5,2,0,0,10,500,4,1111,Slime,Bubbling,RibbonPig,KingSlime,,
+MiddleSpawner2,71d205b594ff40c3aa713773d92ea9fa,3be73fa1660a4512bacdb883f8e70a09,35eaf137a5214017985b35e56e854325,046ebb047fe64fcebcd326805976339f,2,2,25000,1000,5,2,0,0,10,250,3,111,WildBoar,Bubbling,Stump,,,

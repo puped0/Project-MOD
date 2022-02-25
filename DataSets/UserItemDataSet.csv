@@ -1,0 +1,15 @@
+﻿Name,IconRUID,Description,ItemType,MaxStackCount,MonsterLevel,OriginalLevel
+BraveSlash,880efe8e26bd41c18e08e8813463977c,-,Skill,9999,1,1
+RagingBlow,acedd37044c746c5b932cc61c4359de4,-,Skill,9999,2,2
+RageUprising,355f4ea810e94b76bc42b8a8b36c11b3,-,Skill,9999,3,3
+FinalBlow,8cd469debd7749738bab4df1f4fcbd71,-,Skill,9999,2,2
+ColdBeam,31c30270de024b4687f79842a2344fc4,-,Skill,9999,1,1
+ShadeSplitter,3f9d401b75064931b2c76962e7fb624e,-,Skill,9999,2,2
+BloodyStorm,5d70273922fa4704a846e7a3882d46a6,-,Skill,9999,2,2
+CorkscrewBlow,01e50fdf934c47c4994ee4f30b164c57,-,Skill,9999,1,1
+Blunderbuster,1d1f5928b57b406e8d54dd5ed1287dcf,-,Skill,9999,2,2
+Showdown,2e7e0a0666ac464da06f5344ac1fd443,-,Skill,9999,3,3
+RagingBlowEnhanced,30354ec929744b34a78d5f09ef78a5f7,-,Skill,9999,3,3
+FlameBite,1b46d1cef87d4fca99db6e37466ca891,-,Skill,9999,1,1
+ToweringInferno,88092e25d7f4424b9ad9baa5eadc2605,-,Skill,9999,3,3
+Typhoon,3117756dcd834657917c902e9890b0bb,-,Skill,9999,3,3

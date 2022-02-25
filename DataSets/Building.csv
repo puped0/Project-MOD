@@ -1,0 +1,10 @@
+﻿Name,RUID,IsAnimation,ModelID,Description,KoreanName,Scale,NeedBuildZone,Cost,MaxHp,Attack,Defence,AttackRange_x,AttackRange_y,AttackOffset_x,AttackOffset_y,AttackCooldown
+Basement,30d86c8d001241ab9198b2e1e3565315,No,model://60d0a726-e2ef-47b7-bdec-98f473bf4762,메인 기지입니다. 각종 업그레이드를 할 수 있습니다.,기지,0.5,No,500,5000,0,8,0,0,0,0,-
+Barricade1,b59e8e3c2ee84587a22976287088c0f0,No,model://e3efe1eb-0497-4681-8ae1-ff065c12b565,체력이 많은 바리케이드입니다.,바리케이드1,1,Yes,500,10000,0,10,0,0,0,0,-
+Barricade2,c4aee81cc7164c77a6a7b4410cbfd912,No,model://7f9b091e-1d85-4a17-b87c-9bccd12b0a12,체력이 조금 적은 바리케이드입니다.,바리케이드2,1,Yes,250,5000,0,10,0,0,0,0,-
+Barrack,6b579485bf9142108972c6965c2c4b31,No,model://71b269a8-1b72-4982-85c3-2f206fd81d8c,유닛을 생산할 수 있는 건물입니다.,병참,0.5,Yes,300,2500,0,5,0,0,0,0,-
+Shop,8dadb69336cd4f98a0862741f900c7b3,No,model://1cf49c18-66aa-40ba-921b-0e0adeae0099,아이템을 사고 팔 수 있는 건물입니다. 아직 미구현 상태입니다.,상점,0.5,Yes,200,2500,0,3,0,0,0,0,-
+HealingPlace,ba3f3e2946e44e459673022ec5dc4848,Yes,model://68049b48-0ef9-4162-8487-7855634dffc4,캐릭터의 체력을 회복시켜주는 건물입니다. 유닛의 체력은 회복시켜주지 않습니다.,회복소,1,Yes,300,1500,0,3,0,0,0,0,-
+Repeater,8fa1c95640d74eb19bb87a846d7b3469,Yes,model://afda8a8e-c3ef-40a0-9d67-6d3aecb90865,건물을 건설할 수 있게 주변에 동력을 제공하는 건물입니다.,중계기,1,No,150,1250,0,3,0,0,0,0,-
+CustomPortal,2c200582b13649069a1f8149c6430a49,Yes,model://ab569c80-be63-4405-b2ff-e05bb37b5907,다른 포탈에 연결하여 빠르게 이동할 수 있는 포탈입니다.,포탈,1,Yes,250,500,0,3,0,0,0,0,-
+Ballista,405efc3aace04c2aa01754d83d401720,Yes,model://341ded0b-1fdc-4411-a49b-9dc24451501a,몬스터의 공격을 방어하는 기본 방어 건물입니다.,발리스타,1,Yes,500,4000,100,5,4,1,2,0.5,1.75

@@ -1,0 +1,7 @@
+﻿Name,Amount,InitCost,IncreasementCost
+MaxHp,5,100,10
+Attack,0.3,100,10
+Defence,0.1,100,10
+CriticalRate,0.001,100,10
+CriticalDamageRate,0.001,100,10
+AttackSpeed,0.001,100,10

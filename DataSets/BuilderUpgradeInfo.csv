@@ -1,0 +1,8 @@
+﻿Name,Amount,InitCost,IncreasementCost
+BarricadeMaxHp,0.05,100,10
+BarricadeDefence,2,100,10
+BallistaAttack,5,100,10
+ShortRangeUnitAttack,3,100,10
+LongRangeUnitAttack,3,100,10
+UnitMaxHp,0.05,100,10
+UnitDefence,1,100,10

@@ -1,0 +1,2 @@
+﻿Name,MaxHp,Attack,Defence,AttackSpeed,CriticalRate,CriticalDamageRate,ImmuneCooldown,AttackRange_x,AttackRange_y,AttackOffset_x,AttackOffset_y
+Player,500,50,5,1,0.05,1.2,1,1,1,0.5,0.5
