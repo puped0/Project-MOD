@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="502d88fe-8c2b-494f-9176-db8b2993aee8" Language="Lua" Name="Skill" Type="ItemType" Source="None" ModifyTime="2022-01-27T02:50:36.1299777+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="Name" Type="string" DefaultValue="&quot;&quot;" SyncDirection="All" />
+    <CodeBlockProperty Name="ItemType" Type="string" DefaultValue="&quot;&quot;" SyncDirection="All" />
+    <CodeBlockProperty Name="MaxStackCount" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="ItemLevel" Type="number" DefaultValue="0" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="OnCreate" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+self.Name = self.ItemTableData:GetItem("Name")
+self.ItemType = self.ItemTableData:GetItem("ItemType")
+self.MaxStackCount = tonumber(self.ItemTableData:GetItem("MaxStackCount"))
+self.ItemLevel = 1
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>
