@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="44009710-563e-46ff-841b-ef045ca0a874" Language="Lua" Name="DBUpgradeClick" Type="Extend" Source="None" Target="MOD.Core.TouchReceiveComponent" ModifyTime="2022-02-08T01:18:08.7131301+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- DBUpgrade 모델이 사용하는 컴포넌트
+-- DBUpgrade 엔티티를 클릭하면 UI를 띄워줌
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleTouchReleaseEvent" EventName="TouchReleaseEvent" Target="self" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+--------------------------------------------------------
+
+local DBUpgradeInfo = _EntityService:GetEntityByPath("/ui/DBUpgradeUI/DBUpgradeInfo")
+local GameStartPanel = _EntityService:GetEntityByPath("/ui/GameStartUI/GameStartPanel")
+local GameMatchingPanel = _EntityService:GetEntityByPath("/ui/GameMatchingUI/GameMatchingPanel")
+
+if GameStartPanel.Visible == false and GameMatchingPanel.Visible == false then
+	DBUpgradeInfo:SetVisible(true)
+	DBUpgradeInfo:SetEnable(true)
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

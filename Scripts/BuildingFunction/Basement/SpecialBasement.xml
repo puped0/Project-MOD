@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="a3e5d5db-c641-4cc7-9e6c-a318a9274fb9" Language="Lua" Name="SpecialBasement" Type="Component" Source="None" ModifyTime="2022-02-08T00:32:45.525119+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="IsMainBasement" Type="boolean" DefaultValue="true" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- Basement 모델에서 사용
+-- 일반 Basement와 맵 중앙 Basement를 구분하기 위한 컴포넌트
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

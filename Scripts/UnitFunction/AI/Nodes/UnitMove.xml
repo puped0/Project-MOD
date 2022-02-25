@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="63778b1a-6730-4878-bdd1-35ddcb13b8ad" Language="Lua" Name="UnitMove" Type="BTNodeType" Source="None" ModifyTime="2022-02-08T03:12:41.567483+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 유닛의 단순 움직임
+
+if self.ParentAI.time >= self.ParentAI.tick then
+	self.ParentAI.time = 0
+	
+	local UnitEntity = self.ParentAI.Entity
+	local Position = UnitEntity.TransformComponent.Position
+	local Destination = self.ParentAI.Destination
+	local CurrentState = UnitEntity.StateComponent.CurrentStateName
+	local FlipX = UnitEntity.SpriteRendererComponent.FlipX
+	local Range = UnitEntity.UnitAIComponent.Range
+
+	--[[
+	if Destination.x - Range < Position.x and Destination.x + Range < Position.x then
+		UnitEntity.StateComponent:ChangeState("MOVE")
+		UnitEntity.SpriteRendererComponent.FlipX = false
+		UnitEntity.MovementComponent:MoveToDirection(Vector2(-1, 0), 1)
+		--log("left")
+	elseif Destination.x - Range > Position.x and Destination.x + Range > Position.x then
+		UnitEntity.StateComponent:ChangeState("MOVE")
+		UnitEntity.SpriteRendererComponent.FlipX = true
+		UnitEntity.MovementComponent:MoveToDirection(Vector2(1, 0), 1)
+		--log("right")
+	elseif Destination.x - Range < Position.x and Destination.x + Range > Position.x and CurrentState ~= "STAND" then
+		UnitEntity.UnitAIComponent.Source = Vector2(Position.x, Position.y)
+		UnitEntity.StateComponent:ChangeState("STAND")
+		UnitEntity.MovementComponent:Stop()
+		--log("stop")
+	end
+	]]
+	
+	if Position.x > Destination.x + Range then
+		UnitEntity.StateComponent:ChangeState("MOVE")
+		UnitEntity.SpriteRendererComponent.FlipX = false
+		UnitEntity.MovementComponent:MoveToDirection(Vector2(-1, 0), 1)
+		--log("left")
+	elseif Position.x < Destination.x - Range then
+		UnitEntity.StateComponent:ChangeState("MOVE")
+		UnitEntity.SpriteRendererComponent.FlipX = true
+		UnitEntity.MovementComponent:MoveToDirection(Vector2(1, 0), 1)
+		--log("right")
+	elseif Destination.x - Range < Position.x and Destination.x + Range > Position.x and CurrentState ~= "IDLE" then
+		UnitEntity.UnitAIComponent.Source = Vector2(Position.x, Position.y)
+		UnitEntity.StateComponent:ChangeState("IDLE")
+		UnitEntity.MovementComponent:Stop()
+		--log("stop")
+	end
+end
+
+return BehaviourTreeStatus.Success
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

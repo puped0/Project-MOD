@@ -1,0 +1,418 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="e792fb8a-b6c9-4b2b-8d3f-fe6f5110f057" Language="Lua" Name="ExtendPlayerComponent" Type="Extend" Source="None" Target="MOD.Core.PlayerComponent" ModifyTime="2022-02-08T15:39:54.3409062+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="Attack" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="Defence" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="AttackSpeed" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="CriticalRate" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="CriticalDamageRate" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="AttackRange" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackOffset" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="StatLevel" Type="dictionary" DefaultValue="string|number" SyncDirection="All" />
+    <CodeBlockProperty Name="DBStatLevel" Type="dictionary" DefaultValue="string|number" SyncDirection="All" />
+    <CodeBlockProperty Name="UpgradePoint" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="MonsterKillCount" Type="dictionary" DefaultValue="number|number" SyncDirection="None" />
+    <CodeBlockProperty Name="MonsterBuildingDestroyCount" Type="dictionary" DefaultValue="number|number" SyncDirection="None" />
+    <CodeBlockProperty Name="IsDataSet" Type="number" DefaultValue="0" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- DefaultPlayer
+-- 플레이어 정보 저장 및 관리
+-- DB와 연동된 플레이어 스펙 정보(업그레이드와 연계)
+-- 캐릭터 업그레이드, DB 스탯 업그레이드 수행
+-- 보상관련 정보 관리
+-- 체력 관리
+-- 피격, 사망, 데미지 계산, 이펙트 관리
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnInitialize" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 플레이어 관련 정보를 읽어옴
+local Entity = self.Entity
+
+--self:ResetAllData()
+
+local PlayerData = _DataStorageService:GetDataStorage(Entity.Name .."_PlayerData")
+local Data = PlayerData:GetAndWait("Name")
+--local Data = nil
+
+ -- no data, first play
+if Data == nil then
+	--log("no data")
+	local RowData = _DataService:GetTable("Player"):FindRow("Name", "Player")
+	
+	self.MaxHp = tonumber(RowData:GetItem("MaxHp"))
+	self.Attack = tonumber(RowData:GetItem("Attack"))
+	self.Defence = tonumber(RowData:GetItem("Defence"))
+	self.AttackSpeed = tonumber(RowData:GetItem("AttackSpeed"))
+	self.CriticalRate = tonumber(RowData:GetItem("CriticalRate"))
+	self.CriticalDamageRate = tonumber(RowData:GetItem("CriticalDamageRate"))
+	self.AttackRange = Vector2(tonumber(RowData:GetItem("AttackRange_x")), tonumber(RowData:GetItem("AttackRange_y")))
+	self.AttackOffset = Vector2(tonumber(RowData:GetItem("AttackOffset_x")), tonumber(RowData:GetItem("AttackOffset_y")))
+	Entity.PlayerHitComponent.ImmuneCooldown = tonumber(RowData:GetItem("ImmuneCooldown"))
+	self.UpgradePoint = 0
+	
+	self.Hp = self.MaxHp
+	
+	self.DBStatLevel["MaxHpLevel"] = 1
+	self.DBStatLevel["AttackLevel"] = 1
+	self.DBStatLevel["DefenceLevel"] = 1
+	self.DBStatLevel["CriticalRateLevel"] = 1
+	self.DBStatLevel["CriticalDamageRateLevel"] = 1
+	self.DBStatLevel["AttackSpeedLevel"] = 1
+	
+
+	PlayerData:SetAsync("Name", Entity.Name)
+	PlayerData:SetAsync("MaxHp", tostring(self.MaxHp), self.callback_SetData)
+	PlayerData:SetAsync("Attack", tostring(self.Attack), self.callback_SetData)
+	PlayerData:SetAsync("Defence", tostring(self.Defence), self.callback_SetData)
+	PlayerData:SetAsync("AttackSpeed", tostring(self.AttackSpeed), self.callback_SetData)
+	PlayerData:SetAsync("CriticalRate", tostring(self.CriticalRate), self.callback_SetData)
+	PlayerData:SetAsync("CriticalDamageRate", tostring(self.CriticalDamageRate), self.callback_SetData)
+	PlayerData:SetAsync("AttackRange_x", tostring(self.AttackRange.x), self.callback_SetData)
+	PlayerData:SetAsync("AttackRange_y", tostring(self.AttackRange.y), self.callback_SetData)
+	PlayerData:SetAsync("AttackOffset_x", tostring(self.AttackOffset.x), self.callback_SetData)
+	PlayerData:SetAsync("AttackOffset_y", tostring(self.AttackOffset.y), self.callback_SetData)
+	PlayerData:SetAsync("ImmuneCooldown", tostring(Entity.PlayerHitComponent.ImmuneCooldown), self.callback_SetData)
+	PlayerData:SetAsync("UpgradePoint", tostring(0), self.callback_SetData)
+	
+	PlayerData:SetAsync("MaxHpLevel", tostring(1), self.callback_SetData)
+	PlayerData:SetAsync("AttackLevel", tostring(1), self.callback_SetData)
+	PlayerData:SetAsync("DefenceLevel", tostring(1), self.callback_SetData)
+	PlayerData:SetAsync("CriticalRateLevel", tostring(1), self.callback_SetData)
+	PlayerData:SetAsync("CriticalDamageRateLevel", tostring(1), self.callback_SetData)
+	PlayerData:SetAsync("AttackSpeedLevel", tostring(1), self.callback_SetData)
+else
+	--log("data exist")
+	
+	PlayerData:GetAsync("MaxHp", self.callback_GetData)
+	PlayerData:GetAsync("Attack", self.callback_GetData)
+	PlayerData:GetAsync("Defence", self.callback_GetData)
+	PlayerData:GetAsync("AttackSpeed", self.callback_GetData)
+	PlayerData:GetAsync("CriticalRate", self.callback_GetData)
+	PlayerData:GetAsync("CriticalDamageRate", self.callback_GetData)
+	PlayerData:GetAsync("AttackRange_x", self.callback_GetData)
+	PlayerData:GetAsync("AttackRange_y", self.callback_GetData)
+	PlayerData:GetAsync("AttackOffset_x", self.callback_GetData)
+	PlayerData:GetAsync("AttackOffset_y", self.callback_GetData)
+	PlayerData:GetAsync("ImmuneCooldown", self.callback_GetData)
+	PlayerData:GetAsync("UpgradePoint", self.callback_GetData)
+	
+	PlayerData:GetAsync("MaxHpLevel", self.callback_GetData)
+	PlayerData:GetAsync("AttackLevel", self.callback_GetData)
+	PlayerData:GetAsync("DefenceLevel", self.callback_GetData)
+	PlayerData:GetAsync("CriticalRateLevel", self.callback_GetData)
+	PlayerData:GetAsync("CriticalDamageRateLevel", self.callback_GetData)
+	PlayerData:GetAsync("AttackSpeedLevel", self.callback_GetData)
+	
+end
+
+self.StatLevel["MaxHp"] = 1
+self.StatLevel["Attack"] = 1
+self.StatLevel["Defence"] = 1
+self.StatLevel["CriticalRate"] = 1
+self.StatLevel["CriticalDamageRate"] = 1
+self.StatLevel["AttackSpeed"] = 1
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 체력바 생성
+local Entity = self.Entity
+local HpBarModelID = "model://67e61995-f382-4f20-ae44-94c1e8849d5c"
+local UnitBoxSize = Entity.HitComponent.BoxSize
+_SpawnService:SpawnByModelId(HpBarModelID, "MiniHpBar", Vector3(0, UnitBoxSize.y + 0.1, 0), Entity, nil)
+
+for i=1, 10 do
+	self.MonsterKillCount[i] = 0
+	self.MonsterBuildingDestroyCount[i] = 0
+end
+
+self:SetHpBar()
+
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnSyncProperty" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="name" Type="string" SyncDirection="None" />
+        <CodeBlockProperty Name="value" Type="any" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 체력바 크기 갱신
+if self.Entity ~= _UserService.LocalPlayer then
+	return
+end
+
+if name == "UpgradePoint" then
+	local UpgradePointText = _EntityService:GetEntityByPath("/ui/DBUpgradeUI/DBUpgradeInfo/PointPanel/PointText")
+	UpgradePointText.TextComponent.Text = tostring(math.floor(self.UpgradePoint))
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="callback_GetData" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="errorcode" Type="number" DefaultValue="0" SyncDirection="None" />
+        <CodeBlockProperty Name="key" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="value" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- DB에서 플레이어 데이터 읽어옴
+
+if key == "MaxHp" then
+	self.MaxHp = tonumber(value)
+	self.Hp = self.MaxHp
+elseif key == "Attack" then
+	self.Attack = tonumber(value)
+elseif key == "Defence" then
+	self.Defence = tonumber(value)
+elseif key == "AttackSpeed" then
+	self.AttackSpeed = tonumber(value)
+elseif key == "CriticalRate" then
+	self.CriticalRate = tonumber(value)
+elseif key == "CriticalDamageRate" then
+	self.CriticalDamageRate = tonumber(value)
+elseif key == "AttackRange_x" then
+	self.AttackRange.x = tonumber(value)
+elseif key == "AttackRange_y" then
+	self.AttackRange.y = tonumber(value)
+elseif key == "AttackOffset_x" then
+	self.AttackOffset.x = tonumber(value)
+elseif key == "AttackOffset_y" then
+	self.AttackOffset.y = tonumber(value)
+elseif key == "ImmuneCooldown" then
+	self.Entity.PlayerHitComponent.ImmuneCooldown = tonumber(value)
+elseif key == "UpgradePoint" then
+	self.UpgradePoint = tonumber(value)
+else
+	self.DBStatLevel[key] = tonumber(value)
+end
+
+--log(key .. " => " .. tostring(value))
+
+self.IsDataSet = self.IsDataSet + 1
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="callback_SetData" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- DB에서 플레이어 데이터 읽어온 후 동기화용 프로퍼티 1 증가
+self.IsDataSet = self.IsDataSet + 1
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="CalcDmg" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="damage" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+self.Hp = self.Hp - damage
+
+if self.Hp > self.MaxHp then
+	self.Hp = self.MaxHp
+end
+
+self:SetHpBar()
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetHpBar" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- MaxHp와 Hp가 바로 클라이언트로 동기화 되지 않으므로
+-- 0.1초동안 동기화를 기다림
+wait(0.1)
+self.Entity:GetChildByName("MiniHpBar").SpriteGUIRendererComponent.FillAmount = self.Hp / self.MaxHp
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="StatUpgrade" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="StatName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="Amount" Type="number" DefaultValue="0" SyncDirection="None" />
+        <CodeBlockProperty Name="Cost" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 캐릭터 스탯 업그레이드
+
+local Entity = self.Entity
+local Role = Entity.InitRole.Role
+local CanUpgrade = false
+
+if Role == "Character" then
+	CanUpgrade = self.Entity.CharacterInput:EarnMoney(-Cost)
+elseif Role == "Hybrid" then
+	CanUpgrade = self.Entity.HybridInput:EarnMoney(-Cost)
+end
+
+if CanUpgrade then
+	if StatName == "Attack" then
+		self.Attack = self.Attack + Amount 
+	elseif StatName == "Defence" then
+		self.Defence = self.Defence + Amount
+	elseif StatName == "MaxHp" then
+		self.MaxHp = self.MaxHp + Amount
+	elseif StatName == "CriticalRate" then
+		self.CriticalRate = self.CriticalRate + Amount
+	elseif StatName == "CriticalDamageRate" then
+		self.CriticalDamageRate = self.CriticalDamageRate + Amount
+	elseif StatName == "AttackSpeed" then
+		self.AttackSpeed = self.AttackSpeed * (1 + Amount)
+	end
+	
+	self.StatLevel[StatName] = self.StatLevel[StatName] + 1
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="DBUpgrade" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="StatName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="Amount" Type="number" DefaultValue="0" SyncDirection="None" />
+        <CodeBlockProperty Name="Cost" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 캐릭터 DB 스탯 업그레이드
+local Entity = self.Entity
+local CanUpgrade = self:EarnUpgradePoint(-Cost)
+local StatNameLevel = StatName .. "Level"
+
+if CanUpgrade then
+	local PlayerData = _DataStorageService:GetDataStorage(Entity.Name .."_PlayerData")
+	
+	if StatName == "Attack" then
+		self.Attack = self.Attack + Amount
+		PlayerData:SetAsync("Attack", self.Attack)
+	elseif StatName == "Defence" then
+		self.Defence = self.Defence + Amount
+		PlayerData:SetAsync("Defence", self.Defence)
+	elseif StatName == "MaxHp" then
+		self.MaxHp = self.MaxHp + Amount
+		PlayerData:SetAsync("MaxHp", self.MaxHp)
+	elseif StatName == "CriticalRate" then
+		self.CriticalRate = self.CriticalRate + Amount
+		PlayerData:SetAsync("CriticalRate", self.CriticalRate)
+	elseif StatName == "CriticalDamageRate" then
+		self.CriticalDamageRate = self.CriticalDamageRate + Amount
+		PlayerData:SetAsync("CriticalDamageRate", self.CriticalDamageRate)
+	elseif StatName == "AttackSpeed" then
+		self.AttackSpeed = self.AttackSpeed * (1 + Amount)
+		PlayerData:SetAsync("AttackSpeed", self.AttackSpeed)
+	end
+	
+	self.DBStatLevel[StatNameLevel] = self.DBStatLevel[StatNameLevel] + 1
+	PlayerData:SetAsync(StatNameLevel, self.DBStatLevel[StatNameLevel])
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="EarnUpgradePoint" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Charge" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 업그레이드 포인트 획득 및 소모
+if self.UpgradePoint + Charge >= 0 then
+	local PlayerData = _DataStorageService:GetDataStorage(self.Entity.Name .."_PlayerData")
+	
+	self.UpgradePoint = self.UpgradePoint + Charge
+	PlayerData:SetAsync("UpgradePoint", self.UpgradePoint)
+	
+	return true
+else
+	log("돈이 부족합니다.")
+	return false
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="ResetAllData" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- DB 초기화 루틴
+local Entity = self.Entity
+local PlayerData = _DataStorageService:GetDataStorage(Entity.Name .."_PlayerData")
+
+PlayerData:SetAndWait("Name", nil)
+PlayerData:SetAndWait("MaxHp", nil)
+PlayerData:SetAndWait("Attack", nil)
+PlayerData:SetAndWait("Defence", nil)
+PlayerData:SetAndWait("AttackSpeed", nil)
+PlayerData:SetAndWait("CriticalRate", nil)
+PlayerData:SetAndWait("CriticalDamageRate", nil)
+PlayerData:SetAndWait("AttackRange_x", nil)
+PlayerData:SetAndWait("AttackRange_y", nil)
+PlayerData:SetAndWait("AttackOffset_x", nil)
+PlayerData:SetAndWait("AttackOffset_y", nil)
+PlayerData:SetAndWait("ImmuneCooldown", nil)
+PlayerData:SetAndWait("UpgradePoint", nil)
+
+PlayerData:SetAndWait("MaxHpLevel", nil)
+PlayerData:SetAndWait("AttackLevel", nil)
+PlayerData:SetAndWait("DefenceLevel", nil)
+PlayerData:SetAndWait("CriticalRateLevel", nil)
+PlayerData:SetAndWait("CriticalDamageRateLevel", nil)
+PlayerData:SetAndWait("AttackSpeedLevel", nil)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="AddKillOrDestroyCount" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Type" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="Level" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 몬스터 처치 수, 건물 파괴 수 저장
+if Type == "MonsterBuilding" then
+	self.MonsterBuildingDestroyCount[Level] = self.MonsterBuildingDestroyCount[Level] + 1
+elseif Type == "Monster" then
+	self.MonsterKillCount[Level] = self.MonsterKillCount[Level] + 1
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="PlayHitEffect" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Player = self.Entity
+local HitSountRUID = "362f444529214b0b8a4277b28f401110"
+local HitEffectRUID = "a81ce67e29134deeb105d3b490564b8d"
+
+_SoundService:PlaySoundAtPos(HitSountRUID, Player.TransformComponent.Position, Player, 0.25)
+_EffectService:PlayEffect(HitEffectRUID, Player, Player.TransformComponent.Position, 0, Vector3.one, false)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Respawn" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+__base:Respawn()
+self:SetHpBar()
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleHitEvent" EventName="HitEvent" Target="self" Scope="Server">
+      <Code><![CDATA[
+-- Parameters
+local AttackCenter = event.AttackCenter
+local AttackerEntity = event.AttackerEntity
+local Damages = event.Damages
+local Extra = event.Extra
+local FeedbackAction = event.FeedbackAction
+local IsCritical = event.IsCritical
+local TotalDamage = event.TotalDamage
+--------------------------------------------------------
+
+self:PlayHitEffect(self.Entity.Name)
+self:SetHpBar()
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

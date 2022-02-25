@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="ec389a40-0c8c-4451-ba3b-1c3f618ed38d" Language="Lua" Name="GameSet" Type="Component" Source="None" ModifyTime="2022-02-08T03:17:53.5576472+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+--[[
+
+사용 x
+
+local Users = _UserService.UserEntities
+local UserCount = Users.Count
+
+while UserCount == 0 do
+	wait(0.1)
+	Users = _UserService.UserEntities
+	UserCount = Users.Count
+end
+
+log(UserCount)
+
+local Index = 1
+
+if UserCount == 1 then
+	for Name, Entity in pairs(Users) do
+		Entity.InitRole:SetRole("Hybrid")
+	end
+else
+	for Name, Entity in pairs(Users) do
+		if Index == 1 then
+			Entity.InitRole:SetRole("Builder")
+		else
+			Entity.InitRole:SetRole("Character")
+		end
+		Index = Index + 1
+	end
+end
+]]
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

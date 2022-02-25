@@ -1,0 +1,277 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="00176048-b89d-4761-971f-43fb5c7d4676" Language="Lua" Name="Monster" Type="Component" Source="None" ModifyTime="2022-02-08T20:10:04.1880961+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="Level" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="MaxHp" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="Hp" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="Attack" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="Defence" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="DieDelay" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="HitDelay" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="ImmuneCooldown" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackDelay" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackCooldown" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackRange" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackOffset" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="MaxAttackCount" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackType" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackEffectRUID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackSoundRUID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="HitSoundRUID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="All" />
+    <CodeBlockProperty Name="DeadSoundRUID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="All" />
+    <CodeBlockProperty Name="AttackEffectDelay" Type="number" DefaultValue="0" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 모든 Monster 모델에서 사용하는 컴포넌트
+-- 몬스터 정보 저장 및 관리
+-- 사망, 피격, 데미지 계산, 보상 관리, 이펙트 관리
+-- 몬스터 관련 엔티티 생성(체력바)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+local Name = _UtilLogic:Split(Entity.Name, "_")[1]
+local RowData = _DataService:GetTable("Monster"):FindRow("Name", Name)
+
+self.Level = tonumber(RowData:GetItem("Level"))
+self.MaxHp = tonumber(RowData:GetItem("MaxHp"))
+self.Attack = tonumber(RowData:GetItem("Attack"))
+self.Defence = tonumber(RowData:GetItem("Defence"))
+self.DieDelay = tonumber(RowData:GetItem("DieDelay"))
+self.HitDelay = tonumber(RowData:GetItem("HitDelay"))
+self.ImmuneCooldown = tonumber(RowData:GetItem("ImmuneCooldown"))
+self.AttackDelay = tonumber(RowData:GetItem("AttackDelay"))
+self.AttackCooldown = tonumber(RowData:GetItem("AttackCooldown"))
+self.AttackRange = self:ConvertAttackRange(RowData:GetItem("AttackRange_x"), RowData:GetItem("AttackRange_y"))
+self.AttackOffset = Vector2(tonumber(RowData:GetItem("AttackOffset_x")), tonumber(RowData:GetItem("AttackOffset_y")))
+self.MaxAttackCount = tonumber(RowData:GetItem("MaxAttackCount"))
+self.AttackType = RowData:GetItem("AttackType")
+self.AttackEffectRUID = RowData:GetItem("AttackEffectRUID")
+self.AttackSoundRUID = RowData:GetItem("AttackSoundRUID")
+self.HitSoundRUID = RowData:GetItem("HitSoundRUID")
+self.DeadSoundRUID = RowData:GetItem("DeadSoundRUID")
+self.AttackEffectDelay = tonumber(RowData:GetItem("AttackEffectDelay"))
+
+self.Hp = self.MaxHp
+
+local HpBarModelID = "model://a91ba0a3-7e80-42e0-8829-7b2cf1faacbc"
+local MonsterBoxSize = Entity.HitComponent.BoxSize
+_SpawnService:SpawnByModelId(HpBarModelID, "MonsterHpBar", Vector3(0, MonsterBoxSize.y + 0.1, 0), Entity, nil)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="ConvertAttackRange" ExecSpace="ServerOnly">
+      <Return Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="AttackRange_x" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="AttackRange_y" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Entity = self.Entity
+local AttackRange = Vector2.zero
+
+if AttackRange_x == "h" then
+	AttackRange.x = Entity.HitComponent.BoxSize.x
+else
+	AttackRange.x = tonumber(AttackRange_x)
+end
+
+if AttackRange_y == "h" then
+	AttackRange.y = Entity.HitComponent.BoxSize.y
+else
+	AttackRange.y = tonumber(AttackRange_y)
+end
+
+return AttackRange
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Die" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="AttackerEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Entity = self.Entity
+
+Entity.MovementComponent:Stop()
+Entity.StateComponent:ChangeState("DEAD")
+
+local delayDie = function()
+	Entity:Destroy()
+end
+
+self:_DeadSoundPlay(AttackerEntity.Name)
+
+
+
+_TimerService:ClearTimer(Entity.MonsterAIComponent.AttackEffectTimerId)
+_TimerService:ClearTimer(Entity.MonsterAIComponent.AttackTimerId)
+_TimerService:SetTimerOnce(delayDie, self.DieDelay)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Hit" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="AttackerEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Entity = self.Entity
+
+Entity.MovementComponent:Stop()
+-- ChangeState 안해줘도 알아서 HIT으로 바뀜...
+--Entity.StateComponent:ChangeState("HIT")
+
+local delayHit = function()
+	if isvalid(Entity) and Entity.StateComponent.CurrentStateName ~= "DEAD" then
+		Entity.StateComponent:ChangeState("MOVE")
+	end
+end
+
+self:_HitSoundPlay(AttackerEntity.Name)
+_TimerService:SetTimerOnce(delayHit, self.HitDelay)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="CalcDmg" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="damage" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+self.Hp = self.Hp - damage
+
+if self.Hp > self.MaxHp then
+	self.Hp = self.MaxHp
+end
+
+self:SetHpBar()
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="GiveRandomMoney" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="AttackerEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Tags = AttackerEntity.TagComponent.Tags
+local CommonComp = _EntityService:GetEntityByPath("/common").Common
+local Players = _UserService.UserEntities
+
+if Tags:Contains("character") then
+	local Money = (_UtilLogic:RandomIntegerRange(1, 50) + (self.Level - 1) * 50) / 2
+	AttackerEntity.CharacterInput:EarnMoney(Money)
+	CommonComp:EarnMoney(Money)
+	AttackerEntity.ExtendPlayerComponent:AddKillOrDestroyCount("Monster", self.Level)
+	--
+elseif Tags:Contains("hybrid") then
+	local Money = (_UtilLogic:RandomIntegerRange(1, 50) + (self.Level - 1) * 50) / 2
+	AttackerEntity.HybridInput:EarnMoney(Money)
+	CommonComp:EarnMoney(Money)
+	AttackerEntity.ExtendPlayerComponent:AddKillOrDestroyCount("Monster", self.Level)
+	--
+elseif Tags:Contains("unit") or Tags:Contains("building") then
+	local Money =  (_UtilLogic:RandomIntegerRange(1, 50) + (self.Level - 1) * 50) / #Players
+	--local Money = 50 / #Players
+	for i, Player in pairs(Players) do
+		if Player.InitRole.Role == "Builder" then
+			CommonComp:EarnMoney(Money)
+			Player.ExtendPlayerComponent:AddKillOrDestroyCount("Monster", self.Level)
+		elseif Player.InitRole.Role == "Character" then
+			Player.CharacterInput:EarnMoney(Money)
+		elseif Player.InitRole.Role == "Hybrid" then
+			Player.HybridInput:EarnMoney(Money)
+			CommonComp:EarnMoney(Money)
+			Player.ExtendPlayerComponent:AddKillOrDestroyCount("Monster", self.Level)
+		end
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="GiveRandomItem" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="AttackerEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local ItemDataSet = _DataService:GetTable("UserItemDataSet")
+
+local Common = _EntityService:GetEntityByPath("/common")
+local Items = Common.Common.ItemsLevelCategory[self.Level]
+local RandomIndex = _UtilLogic:RandomIntegerRange(1, #Items)
+local ItemInfo = ItemDataSet:FindRow("Name", Items[RandomIndex])
+local ItemType_String = ItemInfo:GetItem("ItemType")
+local ItemType = nil
+
+if ItemType_String == "Skill" then
+	ItemType = Skill
+end
+
+local Tags = AttackerEntity.TagComponent.Tags
+
+if Tags:Contains("character") or Tags:Contains("hybrid") then
+	AttackerEntity.ExtendInventoryComponent:GetItem(ItemInfo:GetItem("Name"), ItemType)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetHpBar" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- MaxHp와 Hp가 바로 클라이언트로 동기화 되지 않으므로
+-- 0.1초동안 동기화를 기다림
+wait(0.1)
+self.Entity:GetChildByName("MonsterHpBar").SpriteGUIRendererComponent.FillAmount = self.Hp / self.MaxHp
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="_HitSoundPlay" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+local Entity = self.Entity
+_SoundService:PlaySoundAtPos(self.HitSoundRUID, Entity.TransformComponent.Position, Entity, 1)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="_DeadSoundPlay" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+local Entity = self.Entity
+_SoundService:PlaySoundAtPos(self.DeadSoundRUID, Entity.TransformComponent.Position, Entity, 1)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleHitEvent" EventName="HitEvent" Target="self" Scope="Server">
+      <Code><![CDATA[
+-- Parameters
+local AttackCenter = event.AttackCenter
+local AttackerEntity = event.AttackerEntity
+local Damages = event.Damages
+local Extra = event.Extra
+local FeedbackAction = event.FeedbackAction
+local IsCritical = event.IsCritical
+local TotalDamage = event.TotalDamage
+
+--------------------------------------------------------
+local Entity = self.Entity
+local CurrentStateName = Entity.StateComponent.CurrentStateName
+
+local originalHp = self.Hp
+self:CalcDmg(TotalDamage)
+
+if self.Hp <= 0 then
+	self:GiveRandomMoney(AttackerEntity)
+	self:GiveRandomItem(AttackerEntity)
+	self:Die(AttackerEntity)
+else
+	self:Hit(AttackerEntity)
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

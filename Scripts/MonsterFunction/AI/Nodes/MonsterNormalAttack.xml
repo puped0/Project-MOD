@@ -1,0 +1,188 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="1965c733-f8a3-416b-b615-7643fec7ac53" Language="Lua" Name="MonsterNormalAttack" Type="BTNodeType" Source="None" ModifyTime="2022-02-08T02:07:30.4546985+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="PrevAttackTime" Type="number" DefaultValue="0" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 공격 모션이 있는 몬스터의 공격
+
+if self.ParentAI.time >= self.ParentAI.tick then
+	local MonsterEntity = self.ParentAI.Entity
+	local MonsterAIComp = MonsterEntity.MonsterAIComponent
+	local CurrentAttackTime = _UtilLogic.ElapsedSeconds
+	
+	if isvalid(MonsterAIComp.TargetEntity) and CurrentAttackTime >= self.PrevAttackTime + MonsterEntity.Monster.AttackCooldown then
+		local AttackRange = MonsterEntity.Monster.AttackRange
+		local AttackOffset = MonsterEntity.Monster.AttackOffset
+		local MonsterPosition = Vector2(MonsterEntity.TransformComponent.Position.x, MonsterEntity.TransformComponent.Position.y)
+		local TargetPosition = MonsterAIComp.TargetEntity.TransformComponent.Position
+		
+		if TargetPosition.x < (MonsterPosition.x - AttackOffset.x - AttackRange.x/2) or TargetPosition.x > (MonsterPosition.x + AttackOffset.x + AttackRange.x/2) then
+			return BehaviourTreeStatus.Failure
+		else
+			self.ParentAI.time = 0
+			self.PrevAttackTime = CurrentAttackTime
+			
+			MonsterEntity.SpriteRendererComponent.FlipX = (TargetPosition.x > MonsterPosition.x)
+			
+			--[[
+			if TargetPosition.x < MonsterPosition.x then
+				MonsterEntity.SpriteRendererComponent.FlipX = false
+			else
+				MonsterEntity.SpriteRendererComponent.FlipX = true
+			end
+			
+			if MonsterEntity.Name == "KingSlime" then
+				local delayEffect = function()
+					local JumpEffectRUID = "2c1d9184edac4ecfa606d37862b71ebd"
+					if isvalid(MonsterEntity) then
+						_EffectService:PlayEffectAttached(JumpEffectRUID, MonsterEntity, Vector3.zero, 0, Vector3.one, false)
+					end
+				end
+				MonsterEntity.MonsterAIComponent.AttackEffectTimerId = _TimerService:SetTimerOnce(delayEffect, 0.3)
+			elseif MonsterEntity.Name == "Mushmom" then
+				local JumpEffectRUID = "136f140de017400ca6f88e4b16e5e2db"
+				_EffectService:PlayEffectAttached(JumpEffectRUID, MonsterEntity, Vector3.zero, 0, Vector3.one, false)
+			end
+			]]
+			
+			local MonsterComp = MonsterEntity.Monster
+			
+			-- 공격 이펙트 출력
+			if MonsterComp.AttackEffectRUID ~= "-" then
+				_TimerService:SetTimerOnce(self:delayAttackEffect(MonsterComp.AttackEffectRUID), MonsterComp.AttackEffectDelay)
+			end
+			
+			if MonsterComp.AttackSoundRUID ~= "-" then
+				_SoundService:PlaySoundAtPos(MonsterComp.AttackSoundRUID, MonsterEntity.TransformComponent.Position, MonsterEntity, 1, MonsterAIComp.TargetEntity.Name)
+			end
+			
+			MonsterEntity.MovementComponent:Stop()
+			MonsterEntity.StateComponent:ChangeState("ATTACK")
+			MonsterEntity.MonsterAIComponent.AttackTimerId = _TimerService:SetTimerOnce(self.delayAttack, MonsterEntity.Monster.AttackDelay)
+			return BehaviourTreeStatus.Success
+		end 
+	end
+end
+
+return BehaviourTreeStatus.Failure
+
+
+--[[
+-- 참고용 구버전 코드
+local MonsterEntity = self.ParentAI.Entity
+local CurrentAttackTime = _UtilLogic.ElapsedSeconds
+
+if self.ParentAI.time >= self.ParentAI.tick and CurrentAttackTime >= self.PrevAttackTime + MonsterEntity.Monster.AttackCooldown and isvalid(self.TargetEntity) then
+	local CurrentState = MonsterEntity.StateComponent.CurrentStateName
+	
+	local v3MonsterPosition = MonsterEntity.TransformComponent.Position
+	local MonsterPosition = Vector2(v3MonsterPosition.x, v3MonsterPosition.y)
+	
+	local BoxOffset = MonsterEntity.HitComponent.BoxOffset
+	local BoxSize = MonsterEntity.Monster.AttackRange
+	
+	local HitComponents = _CollisionService:GetMapServiceFor(MonsterEntity):OverlapBox("HitBox", MonsterPosition + BoxOffset, BoxSize)
+	
+	local FlipX = false
+	
+	if HitComponents.Count <= 1 then
+		return BehaviourTreeStatus.Failure
+	end
+	
+	for i, value in pairs(HitComponents) do
+		if value.Entity.TagComponent ~= nil and value.Entity.TagComponent.Tags:Contains("friendly") then
+			if value.Entity.TransformComponent.Position.x < MonsterPosition.x then
+				FlipX = false
+			else
+				FlipX = true
+			end
+			
+			self.TargetEntity = value.Entity
+			break
+		end
+	end
+	
+	if isvalid(self.TargetEntity) then
+		self.ParentAI.time = 0
+		self.PrevAttackTime = CurrentAttackTime
+		
+		MonsterEntity.MovementComponent:Stop()
+		MonsterEntity.SpriteRendererComponent.FlipX = FlipX
+		MonsterEntity.StateComponent:ChangeState("ATTACK")
+		
+		if MonsterEntity.Name == "KingSlime" then
+			local delayEffect = function()
+				local JumpEffectRUID = "2c1d9184edac4ecfa606d37862b71ebd"
+				if isvalid(MonsterEntity) then
+					_EffectService:PlayEffectAttached(JumpEffectRUID, MonsterEntity, Vector3.zero, 0, Vector3.one, false)
+				end
+			end
+			
+			MonsterEntity.MonsterAIComponent.AttackEffectTimerId = _TimerService:SetTimerOnce(delayEffect, 0.3)
+		elseif MonsterEntity.Name == "Mushmom" then
+			local JumpEffectRUID = "136f140de017400ca6f88e4b16e5e2db"
+			_EffectService:PlayEffectAttached(JumpEffectRUID, MonsterEntity, Vector3.zero, 0, Vector3.one, false)
+		end
+		
+		MonsterEntity.MonsterAIComponent.AttackTimerId = _TimerService:SetTimerOnce(self.delayAttack, MonsterEntity.Monster.AttackDelay)
+					
+		return BehaviourTreeStatus.Success
+	else
+		return BehaviourTreeStatus.Failure
+	end
+end
+
+return BehaviourTreeStatus.Failure
+]]
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="delayAttack" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local MonsterEntity = self.ParentAI.Entity
+if isvalid(MonsterEntity) then
+	MonsterEntity.MonsterAttackComponent:AttackNormal()
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="delayAttackEffect" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="AttackEffectRUID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local MonsterEntity = self.ParentAI.Entity
+return function()
+	if isvalid(MonsterEntity) then
+		_EffectService:PlayEffectAttached(AttackEffectRUID, MonsterEntity, Vector3.zero, 0, Vector3.one, false)
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="delayAttackSound" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="AttackSoundRUID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local MonsterEntity = self.ParentAI.Entity
+return function()
+	if isvalid(MonsterEntity) then
+		_SoundService:PlaySoundAtPos(AttackSoundRUID, MonsterEntity.TransformComponent.Position, MonsterEntity, 1)
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

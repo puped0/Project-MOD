@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="295aa3cd-d5de-42b4-9f70-74649350a041" Language="Lua" Name="SkillSlotButton" Type="Component" Source="None" ModifyTime="2022-02-08T00:26:40.0659729+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+--/ui/SkillUI/SkillInfo/SkillSets/SkillSlot_n
+-- Basement 건물 관련 동작
+-- 스킬 업그레이드 기능
+-- 스킬 슬롯을 클릭했을 경우 UI 동작과 서버 동작 관련 코드
+-- 스킬 슬롯을 클릭하면 스킬 슬롯해서 해당 스킬이 장착 해제됨
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="self" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+
+local LocalPlayer = _UserService.LocalPlayer
+local SkillInfoUI = _EntityService:GetEntityByPath("/ui/SkillUI/SkillInfo")
+local CalledBy = SkillInfoUI.SkillUIManager.CalledBy
+
+-- 건물이 부숴졌을 경우 UI 동작이 무효하므로 UI를 강제로 끔
+if not isvalid(CalledBy) then
+	SkillInfoUI:SetVisible(false)
+	SkillInfoUI:SetEnable(false)
+	return
+end
+
+local PlayerPosition = Vector2(LocalPlayer.TransformComponent.Position.x, LocalPlayer.TransformComponent.Position.y)
+local BuildingPosition = Vector2(CalledBy.TransformComponent.Position.x, CalledBy.TransformComponent.Position.y)
+
+-- 건물과 플레이어간 거리가 3 이상이면 UI를 강제로 끔... 건물 근처에서만 업그레이드 하게끔 하기 위함
+if Vector2.Distance(PlayerPosition, BuildingPosition) > 3 then
+	SkillInfoUI.SkillUIManager:SetUI(false)
+	return
+end
+
+local SkillEntity = Entity.Parent
+local SkillSlotEntity = SkillEntity.Parent
+local Index = tonumber(_UtilLogic:Split(SkillSlotEntity.Name, "_")[2])
+
+local SkillSlots = LocalPlayer.PlayerAttackComponent.SkillSlots
+local IsSkillSet = LocalPlayer.PlayerAttackComponent.IsSkillSet
+
+-- Index 위치의 스킬 슬롯에 스킬이 Set 되어 있는지 확인
+if IsSkillSet[Index] then
+	-- 서버에 스킬 셋 해제 요청
+	LocalPlayer.PlayerAttackComponent:SetSkillSlot(Index, "")
+	SkillSlots[Index] = nil
+	IsSkillSet[Index] = false
+	
+	SkillEntity:SetVisible(false)
+	SkillEntity:SetEnable(false)
+	
+	--- 모바일 UI 세팅 --- 
+	if Environment:IsMobilePlatform() then
+		local MobileSkillSlot = _EntityService:GetEntityByPath("/ui/DefaultGroup/MobileUI/SkillQuickSlot/SkillSlots/SkillSlot_" .. tostring(Index))
+		local MobileSkillIcon = MobileSkillSlot.Children[1]
+		local DefaultSkillIconRUID = "a1d3dc2eaef45844dbe97121809ae4d5"
+		MobileSkillIcon.SpriteGUIRendererComponent.ImageRUID = DefaultSkillIconRUID
+		MobileSkillIcon.SpriteGUIRendererComponent.Color.a = 0.76
+	else
+		local PCSkillSlotIcon = _EntityService:GetEntityByPath("/ui/DefaultGroup/SkillCooldownInfo/Skill_" .. tostring(Index))
+		PCSkillSlotIcon:SetVisible(false)
+		PCSkillSlotIcon:SetEnable(false)
+	end
+end
+
+--[[
+local LocalPlayer = _UserService.LocalPlayer
+
+local SkillEntity = Entity.Parent
+local SkillSlotEntity = SkillEntity.Parent
+local Index = tonumber(_UtilLogic:Split(SkillSlotEntity.Name, "_")[2])
+
+local SkillSlots = LocalPlayer.PlayerAttackComponent.SkillSlots
+local IsSkillSet = LocalPlayer.PlayerAttackComponent.IsSkillSet
+
+if IsSkillSet[Index] then
+	LocalPlayer.PlayerAttackComponent:SetSkillSlot(Index, "")
+	SkillSlots[Index] = {}
+	IsSkillSet[Index] = false
+	
+	SkillEntity:SetVisible(false)
+	SkillEntity:SetEnable(false)
+end
+]]
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

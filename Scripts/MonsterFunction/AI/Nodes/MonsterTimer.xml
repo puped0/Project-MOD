@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="0b15ef10-1795-45d2-afdd-d988b02859ee" Language="Lua" Name="MonsterTimer" Type="BTNodeType" Source="None" ModifyTime="2022-02-08T02:06:40.5816674+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- tick 마다 행동을 결정하도록 타이머를 둠
+-- DEAD, HIT, ATTACK 상태일 땐 행동 결정을 멈춤
+
+self.ParentAI.time = self.ParentAI.time + delta
+
+local CurrentStateName = self.ParentAI.Entity.StateComponent.CurrentStateName
+
+if CurrentStateName == "DEAD" or CurrentStateName == "HIT" or CurrentStateName == "ATTACK" then
+	return BehaviourTreeStatus.Failure
+else
+	return BehaviourTreeStatus.Success
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

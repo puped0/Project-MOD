@@ -1,0 +1,134 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="5e2f2578-3144-4ff8-8a2d-7507d4073aec" Language="Lua" Name="ButtonManager" Type="Component" Source="None" ModifyTime="2022-02-08T01:00:51.1257595+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="Buttons" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="ButtonHandlers" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="IsPressed" Type="boolean" DefaultValue="false" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/BuildingInfoUI/BuildingInfo
+-- 건물 클릭시 나타나는 UI 동작 관련 코드
+-- 건물 UI 버튼, 이벤트 리셋
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 건물의 TouchReceiveComponent와 중복 동작을 방지하기 위한 설정
+-- 버튼 클릭이 우선이 되도록 함
+local ButtonList = _EntityService:GetEntityByPath("/ui/BuildingInfoUI/BuildingInfo/ButtonList")
+
+self.Buttons[1] = ButtonList:GetChildByName("Information")
+self.Buttons[2] = ButtonList:GetChildByName("Production")
+self.Buttons[3] = ButtonList:GetChildByName("Skill")
+self.Buttons[4] = ButtonList:GetChildByName("CharacterUpgrade")
+self.Buttons[5] = ButtonList:GetChildByName("Buy")
+self.Buttons[6] = ButtonList:GetChildByName("Destination")
+self.Buttons[7] = ButtonList:GetChildByName("Repair")
+self.Buttons[8] = ButtonList:GetChildByName("Destruction")
+self.Buttons[9] = ButtonList:GetChildByName("Sell")
+self.Buttons[10] = ButtonList:GetChildByName("BuilderUpgrade")
+
+self.Entity:ConnectEvent(ButtonPressedEvent, self.UIPress)
+self.Entity:GetChildByName("CloseButton"):ConnectEvent(ButtonPressedEvent, self.UIPress)
+
+self.Buttons[1]:ConnectEvent(ButtonPressedEvent, self.UIPress)
+self.Buttons[2]:ConnectEvent(ButtonPressedEvent, self.UIPress)
+self.Buttons[3]:ConnectEvent(ButtonPressedEvent, self.UIPress)
+self.Buttons[4]:ConnectEvent(ButtonPressedEvent, self.UIPress)
+self.Buttons[5]:ConnectEvent(ButtonPressedEvent, self.UIPress)
+self.Buttons[6]:ConnectEvent(ButtonPressedEvent, self.UIPress)
+self.Buttons[7]:ConnectEvent(ButtonPressedEvent, self.UIPress)
+self.Buttons[8]:ConnectEvent(ButtonPressedEvent, self.UIPress)
+self.Buttons[9]:ConnectEvent(ButtonPressedEvent, self.UIPress)
+self.Buttons[10]:ConnectEvent(ButtonPressedEvent, self.UIPress)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="ButtonReset" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+for i, Button in pairs(self.Buttons) do
+	if Button.Visible == true then
+		--log("ButtonReset : " .. Button.Name)
+		Button:SetVisible(false)
+		Button:SetEnable(false)
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="EventReset" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+self.Buttons[1]:DisconnectEvent(ButtonClickEvent, self.ButtonHandlers[1])
+self.Buttons[2]:DisconnectEvent(ButtonClickEvent, self.ButtonHandlers[2])
+self.Buttons[3]:DisconnectEvent(ButtonClickEvent, self.ButtonHandlers[3])
+self.Buttons[4]:DisconnectEvent(ButtonClickEvent, self.ButtonHandlers[4])
+self.Buttons[5]:DisconnectEvent(ButtonClickEvent, self.ButtonHandlers[5])
+self.Buttons[6]:DisconnectEvent(ButtonClickEvent, self.ButtonHandlers[6])
+self.Buttons[7]:DisconnectEvent(ButtonClickEvent, self.ButtonHandlers[7])
+self.Buttons[8]:DisconnectEvent(ButtonClickEvent, self.ButtonHandlers[8])
+self.Buttons[9]:DisconnectEvent(ButtonClickEvent, self.ButtonHandlers[9])
+self.Buttons[10]:DisconnectEvent(ButtonClickEvent, self.ButtonHandlers[10])
+
+self.ButtonHandlers[1] = nil
+self.ButtonHandlers[2] = nil
+self.ButtonHandlers[3] = nil
+self.ButtonHandlers[4] = nil
+self.ButtonHandlers[5] = nil
+self.ButtonHandlers[6] = nil
+self.ButtonHandlers[7] = nil
+self.ButtonHandlers[8] = nil
+self.ButtonHandlers[9] = nil
+self.ButtonHandlers[10] = nil
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetUIEnable" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Enable" Type="boolean" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+self.Entity:SetVisible(Enable)
+self.Entity:SetEnable(Enable)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="UIPress" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+self.IsPressed = true
+--log("Pressed")
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="entity:75a2513a-ee5c-4cd3-b823-eb62fb0fdd52" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+
+local ExtendTouchReceiveComponent = self.Entity.ExtendTouchReceiveComponent
+
+self:ButtonReset()
+self:EventReset()
+self:SetUIEnable(false)
+]]></Code>
+    </CodeBlockEntityEventHandler>
+    <CodeBlockEntityEventHandler Name="HandleScreenTouchReleaseEvent" EventName="ScreenTouchReleaseEvent" Target="service:InputService" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local TouchPoint = event.TouchPoint
+--------------------------------------------------------
+wait(0.1)
+self.IsPressed = false
+--log("Released")
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

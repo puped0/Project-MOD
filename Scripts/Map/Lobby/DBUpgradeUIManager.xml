@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="c8487bd3-ffa4-4c7c-96ab-2f82f6c5bced" Language="Lua" Name="DBUpgradeUIManager" Type="Component" Source="None" ModifyTime="2022-02-08T01:19:16.32463+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/DBUpgradeUI/DBUpgradeInfo
+-- DBUpgrade UI 온오프 관련 코드
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="entity:c8558916-b8ab-4d24-aded-75cc0299b693" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+
+local DBUpgradeInfo = _EntityService:GetEntityByPath("/ui/DBUpgradeUI/DBUpgradeInfo")
+
+DBUpgradeInfo:SetVisible(false)
+DBUpgradeInfo:SetEnable(false)
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="MonsterAttack" Language="Lua" Name="MonsterAttack_" Type="Extend" Source="Template" Target="MOD.Core.AttackComponent" ModifyTime="2022-01-20T22:35:08.9394959+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="2" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="Monster" Type="Component" DefaultValue=":Monster_" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+self.Monster = self.Entity:GetComponent("Monster_")
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnUpdate" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if self.Monster and self.Monster.IsDead == false then
+	self:AttackNear()
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="AttackNear" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+local attackSize = Vector2(1,1)
+local attackOffset = Vector2(0,0)
+local hitComponent = self.Entity.HitComponent
+-- 현재 sprite 사이즈를 알수 없어서 우선 hit것이 있다면 그것을 가져온다.
+if hitComponent then
+	attackSize = hitComponent.BoxSize
+	attackOffset = hitComponent.BoxOffset
+end
+
+self:Attack(attackSize, attackOffset, nil)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="IsAttackTarget" ExecSpace="All">
+      <Return Type="boolean" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="defender" Type="Entity" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if not defender.PlayerComponent then
+	return false
+end
+
+return __base:IsAttackTarget(defender)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

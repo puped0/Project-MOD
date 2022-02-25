@@ -1,0 +1,91 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="614d5d2b-a34e-4264-a561-f09078734c69" Language="Lua" Name="BuildingSelectButton" Type="Component" Source="None" ModifyTime="2022-02-08T01:11:04.9529967+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="Name" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="RUID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="ModelID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="Pivot" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="Scale" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="NeedBuildZone" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="Cost" Type="number" DefaultValue="0" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/BuildingUI/BuildingPanel/BuildingList/BuildingInfoExample
+-- 건설 UI에서 건물 버튼 클릭시 동작
+
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="LoadSpriteInfo" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 건물 크기 계산에 필요한 정보 로드
+
+local PivotPixel = Sprite.Get(self.RUID).PivotPixel
+local PixelPerUnit = Sprite.Get(self.RUID).PixelPerUnit
+
+self.Pivot = Vector2(PivotPixel.x / PixelPerUnit * self.Scale, PivotPixel.y / PixelPerUnit * self.Scale)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="self" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+
+local Money = _EntityService:GetEntityByPath("/common").Common.BuilderMoney
+if Money >= self.Cost then
+	local BuildingPanel = _EntityService:GetEntityByPath("/ui/BuildingUI/BuildingPanel")
+	local MapEntity = _UserService.LocalPlayer.CurrentMap
+
+	-- 건물 실루엣을 표시하기 위한 엔티티 생성
+	local ShadowModelID = "model://513a9c3c-c565-4655-ab2b-7e07dbb70e91"
+	local ShadowBuilding = _SpawnService:SpawnByModelId(ShadowModelID, "ShadowEntity", Vector3.zero, MapEntity, nil)
+	
+	local BuildZones = _EntityService:GetEntitiesByTag("buildzone")
+	
+	-- 건축 가능 구역 표시
+	for i, ZoneEntity in pairs(BuildZones) do
+		ZoneEntity:SetVisible(true)
+		ZoneEntity:SetEnable(true)
+	end
+	
+	
+	ShadowBuilding.SpriteRendererComponent.SpriteRUID = self.RUID
+	ShadowBuilding.SpriteRendererComponent.Color.a = 0.5
+	
+	ShadowBuilding.SpriteInfo.Name = self.Name
+	ShadowBuilding.SpriteInfo.ModelID = self.ModelID
+	ShadowBuilding.SpriteInfo.Pivot = self.Pivot
+	ShadowBuilding.SpriteInfo.Scale = self.Scale
+	ShadowBuilding.TransformComponent.Scale = Vector3(self.Scale, self.Scale, self.Scale)
+	ShadowBuilding.SpriteInfo.NeedBuildZone = self.NeedBuildZone
+	ShadowBuilding.SpriteInfo.KoreanName = self.Entity:GetChildByName("Name").TextComponent.Text
+	ShadowBuilding.SpriteInfo.Cost = self.Cost
+	
+	BuildingPanel.BuildingUIListManager.ShadowBuilding = ShadowBuilding
+	BuildingPanel:SetVisible(false)
+	BuildingPanel:SetEnable(false)
+	
+	local Role = _UserService.LocalPlayer.InitRole.Role
+	
+	-- 다음 건축 단계로 넘어감
+	if Role == "Builder" then
+		_UserService.LocalPlayer.BuilderInput.Task = "build-1"
+	elseif Role == "Hybrid" then
+		_UserService.LocalPlayer.HybridInput.Task = "build-1"
+	end
+else
+	--log("돈이 부족합니다.")
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

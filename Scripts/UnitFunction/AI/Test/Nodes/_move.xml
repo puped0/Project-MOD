@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="8e67a105-7c08-4898-b8d3-51fbe826225f" Language="Lua" Name="_move" Type="BTNodeType" Source="None" ModifyTime="2022-01-17T17:00:23.5823643+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if self.ParentAI.time >= 1 then
+	self.ParentAI.time = 0
+		
+	local MonsterEntity = self.ParentAI.Entity
+	local Direction = nil
+	local FlipX = false
+	
+	local RandomAction = _UtilLogic:RandomIntegerRange(1, 10)
+	
+	if RandomAction >= 1 and RandomAction <= 4 then
+		MonsterEntity.StateComponent:ChangeState("MOVE")
+		MonsterEntity.SpriteRendererComponent.FlipX = false
+		MonsterEntity.MovementComponent:MoveToDirection(Vector2(-1, 0), 0.5)
+		log("left")
+	elseif RandomAction >= 5 and RandomAction <= 8 then
+		MonsterEntity.StateComponent:ChangeState("MOVE")
+		MonsterEntity.SpriteRendererComponent.FlipX = true
+		MonsterEntity.MovementComponent:MoveToDirection(Vector2(1, 0), 0.5)
+		log("right")
+	elseif RandomAction >= 9 and RandomAction <= 10 then
+		MonsterEntity.StateComponent:ChangeState("IDLE")
+		MonsterEntity.MovementComponent:Stop()
+		log("stop")
+	end
+end
+
+return BehaviourTreeStatus.Success
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

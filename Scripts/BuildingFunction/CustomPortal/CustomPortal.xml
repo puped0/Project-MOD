@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="49587ace-b7c2-4f62-9832-e59024e0adb9" Language="Lua" Name="CustomPortal" Type="Component" Source="None" ModifyTime="2022-02-08T00:35:16.751214+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- CustomPortal 모델에서 사용하는 컴포넌트
+-- 서버에서 포탈의 목적지를 설정하는 함수 호출
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 포탈 이름, 목적지 정보를 보여주는 엔티티 생성
+
+local Entity = self.Entity
+
+local EntityPosition = Entity.TransformComponent.Position
+local BoxOffset = Entity.HitComponent.BoxOffset
+local BoxSize = Entity.HitComponent.BoxSize
+local Scale = Entity.TransformComponent.Scale
+
+local SourceName = "Source"
+local DestinationName = "Destination"
+local SourceModelID = "model://5b9acc45-4a19-4e3a-90ed-63c069ceeb8e"
+local DestinationModelID = "model://bc2b27b1-d837-4dde-914c-c92dda56e629"
+local SourcePosition = EntityPosition - Vector3(0, 0.6, 0)
+local DestinationPosition = EntityPosition + Vector3(0, 1.8, 0)
+
+local Source = _SpawnService:SpawnByModelId(SourceModelID, SourceName, Vector3.zero, Entity, nil)
+local Destination = _SpawnService:SpawnByModelId(DestinationModelID, DestinationName, Vector3.zero, Entity, nil)
+
+Source.UITransformComponent.WorldPosition = SourcePosition
+Destination.UITransformComponent.WorldPosition = DestinationPosition
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Destination" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="DestinationEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+        <CodeBlockProperty Name="DestinationText" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+self.Entity:GetChildByName("Destination").DestinationTextComponent:SetDestinationText(DestinationText);
+self.Entity.ExtendPortalComponent:SetDestination(DestinationEntity);
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

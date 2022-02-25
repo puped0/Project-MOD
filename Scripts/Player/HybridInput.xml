@@ -1,0 +1,463 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="e310aa6d-2fe8-4757-b066-ea8799a3ac0f" Language="Lua" Name="HybridInput" Type="Component" Source="None" ModifyTime="2022-02-08T02:53:43.1386214+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="Task" Type="string" DefaultValue="&quot;idle&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="FlipX" Type="boolean" DefaultValue="false" SyncDirection="None" />
+    <CodeBlockProperty Name="FirstTouch" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="DragEntity" Type="Entity" DefaultValue="4193432f-64e5-40ae-9e34-4a9758187376" SyncDirection="None" />
+    <CodeBlockProperty Name="Calibration" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="SelectedUnits" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="SelectedUnitCount" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="SelectedUnitCountTotal" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="CharacterMoney" Type="number" DefaultValue="1000" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- DefaultPlayer
+-- 1인 플레이용 Input 컴포넌트
+-- 건축가와 모험가 두 기능 모두 사용 가능
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local UnitDataSet = _DataService:GetTable("Unit")
+local RowCount = UnitDataSet:GetRowCount()
+
+for i=1, RowCount do
+	local Name = UnitDataSet:GetCell(i, 1)
+	self.SelectedUnits[Name] = {}
+	self.SelectedUnitCount[Name] = 0
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnUpdate" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local TouchPoint = _InputService:GetCursorPosition()
+
+if self.Entity ~= _UserService.LocalPlayer then
+	return
+end
+
+if self.Task == "idle" then
+	--log("Hold")
+	-- 유닛 드래그로 선택하는 인터페이스 구현
+elseif self.Task == "build-1" then
+	local BuildingUIListManage = _EntityService:GetEntityByPath("/ui/BuildingUI/BuildingPanel").BuildingUIListManager
+	BuildingUIListManage:PrintShadowBuilding(_UILogic:ScreenToWorldPosition(TouchPoint), self.FlipX)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SearchUnit" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Position" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+        <CodeBlockProperty Name="Diff" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local DragTriggerModelID = "model://e829e0f3-5f30-4caa-8031-b16e27bae011"
+local CurrentMap = self.Entity.CurrentMap
+local DragTriggerEntity = _SpawnService:SpawnByModelId(DragTriggerModelID, "DragTrigger", Vector3(Position.x, Position.y, 0), CurrentMap, nil)
+local Units = _CollisionService:GetMapServiceFor(DragTriggerEntity):OverlapBox("HitBox", Position, Diff)
+
+for i, value in pairs(self.SelectedUnitCount) do
+	self.SelectedUnitCount[i] = 0
+end
+
+self.SelectedUnitCountTotal = 0
+
+for i, value in pairs(Units) do
+	local UnitEntity = value.Entity
+	local TagComponent = UnitEntity.TagComponent
+
+	if TagComponent ~= nil and TagComponent.Tags:Contains("unit") and UnitEntity.StateComponent.CurrentStateName ~= "DEAD" then
+		self.SelectedUnitCount[UnitEntity.Name] = self.SelectedUnitCount[UnitEntity.Name] + 1
+		self.SelectedUnitCountTotal = self.SelectedUnitCountTotal + 1
+		table.insert(self.SelectedUnits[UnitEntity.Name], self.SelectedUnitCount[UnitEntity.Name], UnitEntity)
+	end
+end
+
+self:SetSelectedUnitInfo(self.SelectedUnitCount, self.Entity.Name)
+
+DragTriggerEntity:Destroy()
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetSelectedUnitInfo" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="SelectedUnitCount" Type="table" DefaultValue="{}" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local SelectedUnitInfo = _EntityService:GetEntityByPath("/ui/DragUI/SelectedUnitInfo")
+
+SelectedUnitInfo.DragUIInfo:SetSelectedUnitInfo(SelectedUnitCount)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetSelectedUnitDestination" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Destination" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+        <CodeBlockProperty Name="InteractionEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Range = 1
+
+if InteractionEntity ~= nil or self.SelectedUnitCountTotal <= 3 then
+	Range = 0.2
+end
+
+for Name, UnitTable in pairs(self.SelectedUnits) do
+	for i=1, self.SelectedUnitCount[Name] do
+		if isvalid(UnitTable[i]) then
+			UnitTable[i].UnitAIComponent.Destination = Destination + Vector2(_UtilLogic:RandomDouble()*Range*2 - Range, 0)
+			UnitTable[i].UnitAIComponent.InteractionEntity = InteractionEntity
+			UnitTable[i].UnitAIComponent.Range = Range
+		end
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="DisableAllUI" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local BuildingPanel = _EntityService:GetEntityByPath("/ui/BuildingUI/BuildingPanel")
+local DestinationInfo = _EntityService:GetEntityByPath("/ui/DestinationInfoUI/DestinationInfo")
+local ProductionInfo = _EntityService:GetEntityByPath("/ui/ProductionUI/ProductionInfo")
+local Inventory = _EntityService:GetEntityByPath("/ui/InventoryUI/Inventory")
+local BuilderUpgradeInfo = _EntityService:GetEntityByPath("/ui/BuilderUpgradeUI/BuilderUpgradeInfo")
+local CharacterUpgradeInfo = _EntityService:GetEntityByPath("/ui/CharacterUpgradeUI/CharacterUpgradeInfo")
+local SkillInfo = _EntityService:GetEntityByPath("/ui/SkillUI/SkillInfo")
+
+BuildingPanel:SetVisible(false)
+BuildingPanel:SetEnable(false)
+
+Inventory:SetVisible(false)
+Inventory:SetEnable(false)
+
+if DestinationInfo.Visible == true then
+	DestinationInfo.DestinationUIManager:SetUI(false)
+end
+
+if ProductionInfo.Visible == true then
+	ProductionInfo.ProductionUIManager:SetUI(false)
+end
+
+if BuilderUpgradeInfo.Visible == true then
+	BuilderUpgradeInfo.BuilderUpgradeUIManager:SetUI(false)
+end
+
+if SkillInfo.Visible == true then
+	SkillInfo.SkillUIManager:SetUI(false)
+end
+
+if CharacterUpgradeInfo.Visible == true then
+	CharacterUpgradeInfo.CharacterUpgradeUIManager:SetUI(false)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="GetUIState" ExecSpace="ClientOnly">
+      <Return Type="boolean" DefaultValue="false" SyncDirection="None" />
+      <Code><![CDATA[
+local BuildingPanel = _EntityService:GetEntityByPath("/ui/BuildingUI/BuildingPanel")
+local DestinationInfo = _EntityService:GetEntityByPath("/ui/DestinationInfoUI/DestinationInfo")
+local ProductionInfo = _EntityService:GetEntityByPath("/ui/ProductionUI/ProductionInfo")
+
+return BuildingPanel.Visible or DestinationInfo.Visible or ProductionInfo.Visible
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="DeleteUnit" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="DeleteUnit" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local UnitTable = self.SelectedUnits[DeleteUnit.Name]
+
+for i, Unit in pairs(UnitTable) do
+	if Unit == DeleteUnit then
+		table.remove(UnitTable, i)
+		self.SelectedUnitCount[DeleteUnit.Name] = self.SelectedUnitCount[DeleteUnit.Name] - 1
+		self.SelectedUnitCountTotal = self.SelectedUnitCountTotal - 1
+		self:SetSelectedUnitInfo(self.SelectedUnitCount)
+		break
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="EarnMoney" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Charge" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if self.CharacterMoney + Charge >= 0 then
+	self.CharacterMoney = self.CharacterMoney + Charge
+	return true
+else
+	log("돈이 부족합니다.")
+	return false
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnSyncProperty" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="name" Type="string" SyncDirection="None" />
+        <CodeBlockProperty Name="value" Type="any" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if _UserService.LocalPlayer ~= self.Entity then
+	return
+end
+
+if name == "CharacterMoney" then
+	local MoneyInfo = _EntityService:GetEntityByPath("/ui/InventoryUI/Inventory/InventoryPanel/CoinPanel/coin_count")
+	MoneyInfo.TextComponent.Text = math.floor(self.CharacterMoney)
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleKeyDownEvent" EventName="KeyDownEvent" Target="service:InputService" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local key = event.key
+--------------------------------------------------------
+
+if self.Entity ~= _UserService.LocalPlayer then
+	return
+end
+
+if key == KeyboardKey.Escape then
+	-- init all
+	-- ui 닫기
+	-- 유닛 선택 해제
+	-- 등등...
+elseif key == KeyboardKey.B and self.Task == "idle" then
+	local BuildingUI = _EntityService:GetEntityByPath("/ui/BuildingUI")
+	local BuildingPanel = BuildingUI:GetChildByName("BuildingPanel")
+	
+	if BuildingPanel.Visible == false then
+		self:DisableAllUI()
+		BuildingPanel:SetVisible(true)
+		BuildingPanel:SetEnable(true)
+	else
+		BuildingPanel:SetVisible(false)
+		BuildingPanel:SetEnable(false)
+	end
+elseif key == KeyboardKey.R and self.Task == "build-1" then
+	--[[
+	if self.FlipX == false then
+		self.FlipX = true
+	else
+		self.FlipX = false
+	end
+	]]
+	self.FlipX = not self.FlipX
+elseif key == KeyboardKey.I then
+	local Inventory = _EntityService:GetEntityByPath("/ui/InventoryUI/Inventory")
+	
+	if Inventory.Visible == false then
+		self:DisableAllUI()
+		Inventory:SetVisible(true)
+		Inventory:SetEnable(true)
+	else
+		Inventory:SetVisible(false)
+		Inventory:SetVisible(false)
+	end
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+    <CodeBlockEntityEventHandler Name="HandleKeyUpEvent" EventName="KeyUpEvent" Target="service:InputService" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local key = event.key
+--------------------------------------------------------
+
+if self.Entity ~= _UserService.LocalPlayer then
+	return
+end
+
+if key == KeyboardKey.Mouse1 then
+	local Destination = _UILogic:ScreenToWorldPosition(_InputService:GetCursorPosition())
+	local TriggerEntitys = _CollisionService:GetMapServiceFor(self.Entity):RaycastAll("TriggerBox", Destination)
+	local InteractionEntity = nil
+	
+	for i, value in pairs(TriggerEntitys) do
+		if value.Entity.ClimbableComponent ~= nil or value.Entity.PortalComponent ~= nil then
+			InteractionEntity = value.Entity
+			break
+		end
+	end
+	
+	self:SetSelectedUnitDestination(Destination, InteractionEntity)
+end
+
+]]></Code>
+    </CodeBlockEntityEventHandler>
+    <CodeBlockEntityEventHandler Name="HandleScreenTouchEvent" EventName="ScreenTouchEvent" Target="service:InputService" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local TouchPoint = event.TouchPoint
+--------------------------------------------------------
+
+if self.Entity ~= _UserService.LocalPlayer then
+	return
+end
+
+if self.Task == "idle" and (not self:GetUIState()) then
+	self.FirstTouch = TouchPoint
+	self.DragEntity:SetVisible(true)
+	self.DragEntity:SetEnable(true)
+	self.Task = "drag-1"
+end
+
+]]></Code>
+    </CodeBlockEntityEventHandler>
+    <CodeBlockEntityEventHandler Name="HandleScreenTouchHoldEvent" EventName="ScreenTouchHoldEvent" Target="service:InputService" Scope="Client">
+      <Code><![CDATA[
+
+-- Parameters
+
+if self.Entity ~= _UserService.LocalPlayer then
+	return
+end
+
+local TouchPoint = event.TouchPoint
+
+if self.Task == "build-1" then
+	self.Task = "build-2"
+elseif self.Task == "drag-1" then
+	local FirstTouch = self.FirstTouch
+	local UpdateTouch = TouchPoint
+	local LeftBottom = Vector2.zero
+	local RightTop = Vector2.zero
+	local Position = Vector3.zero
+	local Diff = Vector2.zero
+	
+	if UpdateTouch.x > FirstTouch.x then
+		LeftBottom.x = FirstTouch.x
+		RightTop.x = UpdateTouch.x
+	else
+		LeftBottom.x = UpdateTouch.x
+		RightTop.x = FirstTouch.x
+	end
+	
+	if UpdateTouch.y > FirstTouch.y then
+		LeftBottom.y = FirstTouch.y
+		RightTop.y = UpdateTouch.y
+	else
+		LeftBottom.y = UpdateTouch.y
+		RightTop.y = FirstTouch.y
+	end
+	
+	Diff = RightTop - LeftBottom
+	Position = LeftBottom + Diff / 2
+	
+	local ScreenSize = Vector2(_UILogic.ScreenWidth, _UILogic.ScreenHeight)
+	local DragUISize = _EntityService:GetEntityByPath("/ui/DragUI").UITransformComponent.RectSize
+	
+	self.Calibration = DragUISize.x / ScreenSize.x
+	
+	self.DragEntity.UITransformComponent.RectSize = Diff * self.Calibration
+	self.DragEntity.UITransformComponent.anchoredPosition = Position * self.Calibration
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+    <CodeBlockEntityEventHandler Name="HandleScreenTouchReleaseEvent" EventName="ScreenTouchReleaseEvent" Target="service:InputService" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local TouchPoint = event.TouchPoint
+--------------------------------------------------------
+
+if self.Entity ~= _UserService.LocalPlayer then
+	return
+end
+
+if self.Task == "idle" then
+	--log("Release")
+elseif self.Task == "build-2" then
+	local BuildingUIListManage = _EntityService:GetEntityByPath("/ui/BuildingUI/BuildingPanel").BuildingUIListManager
+	local ShadowBuilding = BuildingUIListManage.ShadowBuilding
+	local Cost = ShadowBuilding.SpriteInfo.Cost
+	local common = _EntityService:GetEntityByPath("/common")
+	
+	if self.Entity.RigidbodyComponent:IsOnGround() and ShadowBuilding.SpriteInfo.CanBuild then
+		local BuildingManage = _UserService.LocalPlayer.CurrentMap.BuildingManager
+		
+		local FinalPosition = Vector2(ShadowBuilding.TransformComponent.Position.x, ShadowBuilding.TransformComponent.Position.y)
+		local Info = {
+			ShadowBuilding.SpriteInfo.Name,
+			ShadowBuilding.SpriteInfo.ModelID,
+			FinalPosition,
+			ShadowBuilding.SpriteInfo.Scale,
+			ShadowBuilding.SpriteInfo.KoreanName,
+			ShadowBuilding.SpriteInfo.FlipX
+		}
+		
+		BuildingManage:BuildOnGround(_UILogic:ScreenToWorldPosition(TouchPoint), Info)
+		common.Common:EarnMoney(-Cost)
+	end
+	
+	BuildingUIListManage:ResetShadowBuilding()
+	BuildingUIListManage.PrevPosition = Vector2.zero
+	self.FlipX = false
+	
+	local BuildZones = _EntityService:GetEntitiesByTag("buildzone")
+
+	for i, ZoneEntity in pairs(BuildZones) do
+		ZoneEntity:SetVisible(false)
+		ZoneEntity:SetEnable(false)
+	end
+	
+	wait(0.1)
+	self.Task = "idle"
+elseif self.Task == "drag-1" then
+	local FirstTouch = _UILogic:ScreenToWorldPosition(self.FirstTouch)
+	local ReleaseTouch = _UILogic:ScreenToWorldPosition(TouchPoint)
+	
+	self.DragEntity.UITransformComponent.RectSize = Vector2.zero
+	self.DragEntity:SetVisible(false)
+	self.DragEntity:SetEnable(false)
+	
+	local LeftBottom = Vector2.zero
+	local RightTop = Vector2.zero
+	local Position = Vector3.zero
+	local Diff = Vector2.zero
+	
+	if ReleaseTouch.x > FirstTouch.x then
+		LeftBottom.x = FirstTouch.x
+		RightTop.x = ReleaseTouch.x
+	else
+		LeftBottom.x = ReleaseTouch.x
+		RightTop.x = FirstTouch.x
+	end
+	
+	if ReleaseTouch.y > FirstTouch.y then
+		LeftBottom.y = FirstTouch.y
+		RightTop.y = ReleaseTouch.y
+	else
+		LeftBottom.y = ReleaseTouch.y
+		RightTop.y = FirstTouch.y
+	end
+	
+	Diff = RightTop - LeftBottom
+	Position = LeftBottom + Diff / 2
+	
+	self:SearchUnit(Position, Diff)
+	
+	self.Task = "idle"
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="8b81e71d-1b12-4bc7-9afa-d86a572aa493" Language="Lua" Name="MobileButtonManager" Type="Component" Source="None" ModifyTime="2022-02-08T02:57:48.0065546+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="IsPressed" Type="boolean" DefaultValue="false" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/DefaultGroup/MobileUI
+-- 모바일 유저용 인터페이스가 건물 클릭과 겹쳤을 때 두 동작이 동시에 발생하는 것 방지
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+--[[
+local SkillSlots = _EntityService:GetEntityByPath("/ui/DefaultGroup/MobileUI/SkillQuickSlot/SkillSlots").Children
+local Button_Jump = _EntityService:GetEntityByPath("/ui/DefaultGroup/MobileUI/Button_Jump")
+local Button_Attack = _EntityService:GetEntityByPath("/ui/DefaultGroup/MobileUI/Button_Attack")
+local UIJoyStick = _EntityService:GetEntityByPath("/ui/DefaultGroup/MobileUI/UIJoystick")
+]]
+
+local MobileUIs = _EntityService:GetEntityByPath("/ui/DefaultGroup/MobileUI").Children
+
+local SkillSlots =  MobileUIs[1].Children[1].Children
+local UIJoyStick = MobileUIs[2]
+local Button_Jump = MobileUIs[3]
+local Button_Attack = MobileUIs[4]
+
+for i, Button in pairs(SkillSlots) do
+	Button:ConnectEvent(ButtonPressedEvent, self.UIPress)
+end
+
+Button_Jump:ConnectEvent(ButtonPressedEvent, self.UIPress)
+Button_Attack:ConnectEvent(ButtonPressedEvent, self.UIPress)
+
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="UIPress" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+self.IsPressed = true
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleScreenTouchReleaseEvent" EventName="ScreenTouchReleaseEvent" Target="service:InputService" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local TouchPoint = event.TouchPoint
+--------------------------------------------------------
+
+wait(0.1)
+self.IsPressed = false
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

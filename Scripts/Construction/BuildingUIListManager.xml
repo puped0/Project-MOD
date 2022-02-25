@@ -1,0 +1,220 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="b1173c55-e237-4c07-b694-7e176c923a87" Language="Lua" Name="BuildingUIListManager" Type="Component" Source="None" ModifyTime="2022-02-08T01:12:49.6534123+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="ShadowBuilding" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+    <CodeBlockProperty Name="PrevPosition" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/BuildingUI/BuildingPanel
+-- 건축 관련 UI 동작
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 건축 UI 초기화
+-- DataSet 정보에 따라 유동적으로 생성
+
+self.Entity:SetVisible(false)
+self.Entity:SetEnable(false)
+
+local BuildingDataSet = _DataService:GetTable("Building")
+local RowCount = BuildingDataSet:GetRowCount()
+
+local BuildingList = _EntityService:GetEntityByPath("/ui/BuildingUI/BuildingPanel/BuildingList")
+local BuildingInfoExample = _EntityService:GetEntityByPath("/ui/BuildingUI/BuildingPanel/BuildingList/BuildingInfoExample")
+for i=1, RowCount do
+	local RowData = {}
+	for j=1, 9 do	
+		table.insert(RowData, j, BuildingDataSet:GetCell(i,j))
+	end
+		
+	local CopiedEntity = _SpawnService:Clone(RowData[1], BuildingInfoExample, BuildingList)
+	local CopiedEntityRUID = CopiedEntity:GetChildByName("BuildingImage")
+	local CopiedEntityDescription = CopiedEntity:GetChildByName("Description")
+	local CopiedEntityName = CopiedEntity:GetChildByName("Name")
+	local CopiedEntityCost = CopiedEntity:GetChildByName("Cost")
+	
+	CopiedEntity.BuildingSelectButton.Name = RowData[1]
+	CopiedEntityRUID.SpriteGUIRendererComponent.ImageRUID = RowData[2]
+	CopiedEntity.BuildingSelectButton.RUID = RowData[2]
+	CopiedEntity.BuildingSelectButton.ModelID = RowData[4]
+	CopiedEntityDescription.TextComponent.Text = RowData[5]
+	CopiedEntityName.TextComponent.Text = RowData[6]
+	CopiedEntity.BuildingSelectButton.Scale = tonumber(RowData[7])
+	CopiedEntity.BuildingSelectButton.NeedBuildZone = RowData[8]
+	CopiedEntityCost.TextComponent.Text = RowData[9]
+	CopiedEntity.BuildingSelectButton.Cost = RowData[9]
+	
+	
+	if RowData[3] == "No" then
+		Sprite.LoadAsync(RowData[2], CopiedEntity.BuildingSelectButton.LoadSpriteInfo)
+	end
+	
+	--BuildingList:AttachChild(CopiedEntity)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="PrintShadowBuilding" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="TouchPoint" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+        <CodeBlockProperty Name="FlipX" Type="boolean" DefaultValue="false" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+--local Position = Vector2(math.floor(TouchPoint.x), math.floor(TouchPoint.y))
+
+local Position = Vector2(TouchPoint.x - TouchPoint.x % 0.25, TouchPoint.y - TouchPoint.y % 0.25)
+
+--[[
+-- 기존 코드
+if self.PrevPosition ~= Position then
+	local LocalPlayer = _UserService.LocalPlayer
+	local PlayerPosition = LocalPlayer.TransformComponent.Position
+		
+	if self.ShadowBuilding ~= nil then
+		if LocalPlayer.RigidbodyComponent:IsOnGround() then
+			--self.ShadowBuilding.TransformComponent.Position = Vector3(Position.x, PlayerPosition.y - PlayerPosition.y % 0.5 + self.ShadowBuilding.SpriteInfo.Pivot.y, 0)
+			self.ShadowBuilding.TransformComponent.Position = Vector3(Position.x, PlayerPosition.y + self.ShadowBuilding.SpriteInfo.Pivot.y, 0)
+		else
+			self.ShadowBuilding.TransformComponent.Position = Vector3(Position.x, Position.y, 0)
+		end
+		
+		if self:CanBuild() then
+			self.ShadowBuilding.SpriteRendererComponent.Color = Color(1, 1, 1, 0.5)
+			self.ShadowBuilding.SpriteInfo.CanBuild = true
+		else
+			self.ShadowBuilding.SpriteRendererComponent.Color = Color(1, 0, 0, 0.5)
+			self.ShadowBuilding.SpriteInfo.CanBuild = false
+		end
+		
+		self.ShadowBuilding.SpriteRendererComponent.FlipX = FlipX
+		self.ShadowBuilding.SpriteInfo.FlipX = FlipX
+	end
+	
+	self.PrevPosition = Position
+end
+]]
+
+-- 건물 실루엣 출력
+if self.ShadowBuilding ~= nil then
+	if self.PrevPosition ~= Position then
+		local LocalPlayer = _UserService.LocalPlayer
+		local PlayerPosition = LocalPlayer.TransformComponent.Position
+			
+		if LocalPlayer.RigidbodyComponent:IsOnGround() then
+			--self.ShadowBuilding.TransformComponent.Position = Vector3(Position.x, PlayerPosition.y - PlayerPosition.y % 0.5 + self.ShadowBuilding.SpriteInfo.Pivot.y, 0)
+			self.ShadowBuilding.TransformComponent.Position = Vector3(Position.x, PlayerPosition.y + self.ShadowBuilding.SpriteInfo.Pivot.y + 0.01, 0)
+		else
+			self.ShadowBuilding.TransformComponent.Position = Vector3(Position.x, Position.y, 0)
+		end
+		
+		if self:CanBuild() then
+			self.ShadowBuilding.SpriteRendererComponent.Color = Color(1, 1, 1, 0.5)
+			self.ShadowBuilding.SpriteInfo.CanBuild = true
+		else
+			self.ShadowBuilding.SpriteRendererComponent.Color = Color(1, 0, 0, 0.5)
+			self.ShadowBuilding.SpriteInfo.CanBuild = false
+		end
+		
+		self.PrevPosition = Position
+	end
+	--self.ShadowBuilding.SpriteRendererComponent.FlipX = FlipX
+	--self.ShadowBuilding.SpriteInfo.FlipX = FlipX
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="ResetShadowBuilding" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+if self.ShadowBuilding ~= nil then
+	self.ShadowBuilding:Destroy()
+	self.ShadowBuilding = nil
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="CanBuild" ExecSpace="ClientOnly">
+      <Return Type="boolean" DefaultValue="false" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+-- 현재 위치에 건설이 가능한지 여부 반환
+
+local FinalPosition = Vector2(self.ShadowBuilding.TransformComponent.Position.x, self.ShadowBuilding.TransformComponent.Position.y)
+local BuildPosition = Vector2(FinalPosition.x, FinalPosition.y - self.ShadowBuilding.SpriteInfo.Pivot.y)
+local BuildLeftBottom = FinalPosition - self.ShadowBuilding.SpriteInfo.Pivot
+local BuildRightTop = FinalPosition + self.ShadowBuilding.SpriteInfo.Pivot
+
+local Buildings = _EntityService:GetEntitiesByTag("building")
+
+if _UserService.LocalPlayer.RigidbodyComponent:IsOnGround() == false then
+	return false
+end
+
+for i, BuildingEntity in pairs(Buildings) do
+	local BuildingPosition = BuildingEntity.TransformComponent.Position
+	local BoxOffset = BuildingEntity.HitComponent.BoxOffset
+	local BoxSize = BuildingEntity.HitComponent.BoxSize
+		
+	local BoxCenter = Vector2(BuildingPosition.x, BuildingPosition.y) + BoxOffset
+	local BoxLeftBottom = BoxCenter - BoxSize/2
+	local BoxRightTop = BoxCenter + BoxSize/2
+	
+	
+	
+	--Box by point
+	if (BuildPosition.x >= BoxLeftBottom.x and BuildPosition.x <= BoxRightTop.x) and (BuildPosition.y >= BoxLeftBottom.y - 0.01 and BuildPosition.y <= BoxRightTop.y) then
+		return false
+	end	
+	
+	
+	--[[
+	--Box by Box
+	if BuildLeftBottom.x <BoxRightTop.x and BuildRightTop.x > BoxLeftBottom.x and BuildRightTop.y > BoxLeftBottom.y and BuildLeftBottom.y < BoxRightTop.y then
+		return false
+	end
+	]]
+end
+
+if self.ShadowBuilding.SpriteInfo.NeedBuildZone == "Yes" then
+	local BuildZones = _EntityService:GetEntitiesByTag("buildzone")
+	
+	for i, ZoneEntity in pairs(BuildZones) do
+		local ZonePosition = Vector2(ZoneEntity.UITransformComponent.WorldPosition.x, ZoneEntity.UITransformComponent.WorldPosition.y)
+		local ZoneBoxOffset = ZoneEntity.TriggerComponent.BoxOffset
+		local ZoneBoxSize = ZoneEntity.TriggerComponent.BoxSize
+		
+		local ZoneLeftBottom = ZonePosition + ZoneBoxOffset - ZoneBoxSize/2
+		local ZoneRightTop = ZonePosition + ZoneBoxOffset + ZoneBoxSize/2
+		
+		if (BuildPosition.x >= ZoneLeftBottom.x and BuildPosition.x <= ZoneRightTop.x) and (BuildPosition.y >= ZoneLeftBottom.y and BuildPosition.y <= ZoneRightTop.y) then
+			return true
+		end 
+	end
+	
+	return false
+else
+	return true
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="entity:154db918-4e49-44df-9bd1-f1286447f8a4" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+
+local BuildingPanel = self.Entity
+BuildingPanel:SetVisible(false)
+BuildingPanel:SetEnable(false)
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

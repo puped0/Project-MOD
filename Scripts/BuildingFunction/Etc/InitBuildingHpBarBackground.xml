@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="b19bcb3a-c421-4274-884e-eef77b9fbc30" Language="Lua" Name="InitBuildingHpBarBackground" Type="Component" Source="None" ModifyTime="2022-02-08T00:45:59.4803827+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 건물 체력 관련 모델인 BuildingHpBarBackground 모델에서 사용하는 컴포넌트
+-- BuildingHpBarForeground, BuildingHpBarText 생성
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+local ParentEntity = Entity.Parent
+
+local ParentBoxOffset = ParentEntity.HitComponent.BoxOffset
+local ParentBoxSize = ParentEntity.HitComponent.BoxSize
+local ParentScale = ParentEntity.TransformComponent.Scale
+
+Entity.TransformComponent:Translate(0, (ParentBoxOffset.y - ParentBoxSize.y/2 - 0.15)/ParentScale.y)
+Entity.TransformComponent.Scale = Vector3.one / ParentScale.x
+
+local HpBarForegroundModelID = "model://9f757d76-34e3-45e8-8402-6aa5c542f125"
+local HpBarTextModelID = "model://2d93572b-10b4-491b-885f-71e52c3d5eb8"
+
+wait(0.1)
+
+_SpawnService:SpawnByModelId(HpBarForegroundModelID, "BuildingHpBarForeground", Vector3.zero, Entity, nil)
+_SpawnService:SpawnByModelId(HpBarTextModelID, "BuildingHpBarText", Vector3.zero, Entity, nil)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

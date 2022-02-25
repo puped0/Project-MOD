@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="734803bb-fc43-40a3-b2c1-873c9e83f0c1" Language="Lua" Name="_climb" Type="BTNodeType" Source="None" ModifyTime="2022-01-18T21:23:52.623294+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if self.ParentAI.time >= 0.1 then
+	local MonsterEntity = self.ParentAI.Entity
+	if MonsterEntity.RigidbodyComponent.IsQuaterViewMove == false then
+		local MonsterPos = MonsterEntity.TransformComponent.Position
+		
+		MonsterEntity.StateComponent:ChangeState("MOVE")
+		
+		MonsterEntity.RigidbodyComponent.IsQuaterViewMove = true
+		MonsterEntity.MovementComponent:SetPosition(Vector2(MonsterPos.x, MonsterPos.y))
+	end
+	
+	MonsterEntity.MovementComponent:MoveToDirection(Vector2(0,1), 1)
+	
+	--log("climb")
+end
+
+return BehaviourTreeStatus.Success
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

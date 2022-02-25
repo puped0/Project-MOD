@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="30f257a8-11f9-453f-afb9-9cfb87d26639" Language="Lua" Name="MonsterBodyAttack" Type="BTNodeType" Source="None" ModifyTime="2022-02-08T02:07:06.5505039+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="PrevAttackTime" Type="number" DefaultValue="0" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 공격 모션이 없는 몬스터의 공격
+
+if self.ParentAI.time >= self.ParentAI.tick then
+	local MonsterEntity = self.ParentAI.Entity
+	local MonsterAIComp = MonsterEntity.MonsterAIComponent
+	local CurrentAttackTime = _UtilLogic.ElapsedSeconds
+	
+	-- TargetEntity가 우효하고 공격 쿨타임이 지났을 때 공격
+	if isvalid(MonsterAIComp.TargetEntity) and CurrentAttackTime >= self.PrevAttackTime + MonsterEntity.Monster.AttackCooldown then
+		local AttackRange = MonsterEntity.Monster.AttackRange
+		local MonsterPosition = Vector2(MonsterEntity.TransformComponent.Position.x, MonsterEntity.TransformComponent.Position.y)
+		local TargetPosition = MonsterAIComp.TargetEntity.TransformComponent.Position
+		
+		if (TargetPosition.x < (MonsterPosition.x - AttackRange.x/2) or TargetPosition.x > (MonsterPosition.x + AttackRange.x/2))
+			--or (TargetPosition.y < (MonsterPosition.y - AttackRange.y/2) or TargetPosition.y > (MonsterPosition.y + AttackRange.y/2))
+			-- 사다리에 매달리면 개사기라 y축 제한을 없앰
+			then
+			return BehaviourTreeStatus.Failure
+		else
+			self.ParentAI.time = 0
+			self.PrevAttackTime = CurrentAttackTime
+				
+			MonsterEntity.StateComponent:ChangeState("ATTACK")
+			MonsterEntity.MonsterAttackComponent:AttackBody()
+		end 
+	end
+end
+
+return BehaviourTreeStatus.Failure
+
+--[[
+local MonsterEntity = self.ParentAI.Entity
+local CurrentAttackTime = _UtilLogic.ElapsedSeconds
+
+if self.ParentAI.time >= self.ParentAI.tick and CurrentAttackTime >= self.PrevAttackTime + MonsterEntity.Monster.AttackCooldown then
+	local CurrentState = MonsterEntity.StateComponent.CurrentStateName
+	
+	local v3MonsterPosition = MonsterEntity.TransformComponent.Position
+	local MonsterPosition = Vector2(v3MonsterPosition.x, v3MonsterPosition.y)
+	
+	local BoxOffset = MonsterEntity.HitComponent.BoxOffset
+	local BoxSize = MonsterEntity.Monster.AttackRange
+	
+	local HitComponents = _CollisionService:GetMapServiceFor(MonsterEntity):OverlapBox("HitBox", MonsterPosition + BoxOffset, BoxSize)
+	
+	if HitComponents.Count <= 1 then
+		return BehaviourTreeStatus.Failure
+	end
+	
+	for i, value in pairs(HitComponents) do
+		if value.Entity.TagComponent ~= nil and value.Entity.TagComponent.Tags:Contains("friendly") then
+			self.TargetEntity = value.Entity
+			break
+		end
+	end
+	
+	if isvalid(self.TargetEntity) then
+		self.ParentAI.time = 0
+		self.PrevAttackTime = CurrentAttackTime
+		
+		--log("Attack")
+		
+		MonsterEntity.StateComponent:ChangeState("ATTACK")
+		MonsterEntity.MonsterAttackComponent:AttackBody(HitComponents)
+			
+		return BehaviourTreeStatus.Success
+	else
+		return BehaviourTreeStatus.Failure
+	end
+end
+
+return BehaviourTreeStatus.Failure
+]]
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

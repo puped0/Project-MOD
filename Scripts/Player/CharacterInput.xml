@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="597f1700-27c0-4745-b20f-90f3092b433f" Language="Lua" Name="CharacterInput" Type="Component" Source="None" ModifyTime="2022-02-08T17:08:59.4832366+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="CharacterMoney" Type="number" DefaultValue="1000" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- DefaultPlayer
+-- 돈 관리, 인벤토리 UI 제어
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnSyncProperty" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="name" Type="string" SyncDirection="None" />
+        <CodeBlockProperty Name="value" Type="any" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if _UserService.LocalPlayer ~= self.Entity then
+	return
+end
+
+if name == "CharacterMoney" then
+	local MoneyInfo = _EntityService:GetEntityByPath("/ui/InventoryUI/Inventory/InventoryPanel/CoinPanel/coin_count")
+	MoneyInfo.TextComponent.Text = math.floor(self.CharacterMoney)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="EarnMoney" ExecSpace="ServerOnly">
+      <Return Type="boolean" DefaultValue="false" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Charge" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if self.CharacterMoney + Charge >= 0 then
+	self.CharacterMoney = self.CharacterMoney + Charge
+	return true
+else
+	log("돈이 부족합니다.")
+	return false
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="DisableAllUI" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local DestinationInfo = _EntityService:GetEntityByPath("/ui/DestinationInfoUI/DestinationInfo")
+local Inventory = _EntityService:GetEntityByPath("/ui/InventoryUI/Inventory")
+local SkillInfo = _EntityService:GetEntityByPath("/ui/SkillUI/SkillInfo")
+local CharacterUpgradeInfo = _EntityService:GetEntityByPath("/ui/CharacterUpgradeUI/CharacterUpgradeInfo")
+
+Inventory:SetVisible(false)
+Inventory:SetEnable(false)
+
+if DestinationInfo.Visible == true then
+	DestinationInfo.DestinationUIManager:SetUI(false)
+end
+
+if SkillInfo.Visible == true then
+	SkillInfo.SkillUIManager:SetUI(false)
+end
+
+if CharacterUpgradeInfo.Visible == true then
+	CharacterUpgradeInfo.CharacterUpgradeUIManager:SetUI(false)
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleKeyDownEvent" EventName="KeyDownEvent" Target="service:InputService" Scope="All">
+      <Code><![CDATA[
+-- Parameters
+local key = event.key
+--------------------------------------------------------
+
+if self.Entity ~= _UserService.LocalPlayer then
+	return
+end
+
+if key == KeyboardKey.I then
+	local Inventory = _EntityService:GetEntityByPath("/ui/InventoryUI/Inventory")
+	
+	if Inventory.Visible == false then
+		self:DisableAllUI()
+		Inventory:SetVisible(true)
+		Inventory:SetEnable(true)
+	else
+		Inventory:SetVisible(false)
+		Inventory:SetVisible(false)
+	end
+end
+
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

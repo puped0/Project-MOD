@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="5ebd9fdf-4602-4c4c-9a8e-1524ace22569" Language="Lua" Name="MobileSkillSlot" Type="Component" Source="None" ModifyTime="2022-02-08T02:58:48.637999+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/DefaultGroup/MobileUI/SkillQuickSlot/SkillSlots
+-- 모바일 인터페이스로 스킬 버튼 누를 시 스킬 사용 동작...
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+
+Entity:GetChildByName("SkillSlot_1"):ConnectEvent(ButtonClickEvent, self.Skill_1)
+Entity:GetChildByName("SkillSlot_2"):ConnectEvent(ButtonClickEvent, self.Skill_2)
+Entity:GetChildByName("SkillSlot_3"):ConnectEvent(ButtonClickEvent, self.Skill_3)
+Entity:GetChildByName("SkillSlot_4"):ConnectEvent(ButtonClickEvent, self.Skill_4)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Skill_1" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local LocalPlayer = _UserService.LocalPlayer
+LocalPlayer.PlayerAttackComponent:NormalAttack("1")
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Skill_2" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local LocalPlayer = _UserService.LocalPlayer
+LocalPlayer.PlayerAttackComponent:NormalAttack("2")
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Skill_3" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local LocalPlayer = _UserService.LocalPlayer
+LocalPlayer.PlayerAttackComponent:NormalAttack("3")
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Skill_4" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local LocalPlayer = _UserService.LocalPlayer
+LocalPlayer.PlayerAttackComponent:NormalAttack("4")
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

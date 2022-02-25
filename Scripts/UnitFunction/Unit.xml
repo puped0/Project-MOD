@@ -1,0 +1,161 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="d4d52b6f-12b5-40ed-a3f4-eb13d0008b98" Language="Lua" Name="Unit" Type="Component" Source="None" ModifyTime="2022-02-08T03:09:34.5530145+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="UnitInfo" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="Hp" Type="number" DefaultValue="0" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 모든 Unit 모델에서 사용하는 컴포넌트
+-- 유닛 정보 관리(저장은 Common에서)
+-- 사망, 피격, 데미지 계산, 이펙트 관리
+-- 몬스터 관련 엔티티 생성(체력바)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+-- 체력바 생성
+local Entity = self.Entity
+local Common = _EntityService:GetEntityByPath("/common")
+local Name = _UtilLogic:Split(Entity.Name, "_")[1]
+
+self.UnitInfo = Common.Common.Unit[Name]
+
+if self:IsServer() then
+	self.Hp = self.UnitInfo["MaxHp"]
+	
+	local HpBarModelID = "model://67e61995-f382-4f20-ae44-94c1e8849d5c"
+	local UnitBoxSize = Entity.HitComponent.BoxSize
+	_SpawnService:SpawnByModelId(HpBarModelID, "UnitHpBar", Vector3(0, UnitBoxSize.y + 0.1, 0), Entity, nil)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="ConvertAttackRange" ExecSpace="ServerOnly">
+      <Return Type="Vector2" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="AttackRange_x" Type="string" SyncDirection="None" />
+        <CodeBlockProperty Name="AttackRange_y" Type="string" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Entity = self.Entity
+local AttackRange = Vector2.zero
+
+if AttackRange_x == "h" then
+	AttackRange.x = Entity.HitComponent.BoxSize.x
+else
+	AttackRange.x = tonumber(AttackRange_x)
+end
+
+if AttackRange_y == "h" then
+	AttackRange.y = Entity.HitComponent.BoxSize.y
+else
+	AttackRange.y = tonumber(AttackRange_y)
+end
+
+return AttackRange
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Die" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+local Entity = self.Entity
+local Players = _UserService.UserEntities
+
+Entity.MovementComponent:Stop()
+Entity.StateComponent:ChangeState("DEAD")
+
+local delayDie = function()
+	Entity:Destroy()
+end
+
+-- 선택된 유닛이 죽었을지도 모르므로...
+for Id, UserEntity in pairs(Players) do
+	if UserEntity.BuilderInput ~= nil then
+		UserEntity.BuilderInput:DeleteUnit(Entity)
+	end
+end
+
+_TimerService:ClearTimer(Entity.UnitAIComponent.AttackTimerId)
+_TimerService:SetTimerOnce(delayDie, self.UnitInfo["DieDelay"])
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Hit" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+local Entity = self.Entity
+
+Entity.MovementComponent:Stop()
+-- ChangeState 안해줘도 알아서 HIT으로 바뀜...
+--Entity.StateComponent:ChangeState("HIT")
+
+local delayHit = function()
+	if isvalid(Entity) and Entity.StateComponent.CurrentStateName ~= "DEAD" then
+		Entity.StateComponent:ChangeState("MOVE")
+	end
+end
+ _TimerService:SetTimerOnce(delayHit, self.UnitInfo["HitDelay"])
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="CalcDmg" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="damage" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+self.Hp = self.Hp - damage
+
+if self.Hp > self.UnitInfo["MaxHp"] then
+	self.Hp = self.UnitInfo["MaxHp"]
+end
+
+self:SetHpBar()
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetHpBar" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+-- MaxHp와 Hp가 바로 클라이언트로 동기화 되지 않으므로
+-- 0.1초동안 동기화를 기다림
+wait(0.1)
+self.Entity:GetChildByName("UnitHpBar").SpriteGUIRendererComponent.FillAmount = self.Hp / self.UnitInfo["MaxHp"]
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleHitEvent" EventName="HitEvent" Target="self" Scope="Server">
+      <Code><![CDATA[
+-- Parameters
+local AttackCenter = event.AttackCenter
+local AttackerEntity = event.AttackerEntity
+local Damages = event.Damages
+local Extra = event.Extra
+local FeedbackAction = event.FeedbackAction
+local IsCritical = event.IsCritical
+local TotalDamage = event.TotalDamage
+
+--------------------------------------------------------
+local Entity = self.Entity
+local CurrentStateName = Entity.StateComponent.CurrentStateName
+
+local originalHp = self.Hp
+self:CalcDmg(TotalDamage)
+
+if self.Hp <= 0 then
+	self:Die()
+else
+	self:Hit()
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

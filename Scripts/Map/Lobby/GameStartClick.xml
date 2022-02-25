@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="17e6ff57-0d1b-4a01-8c94-0d814a94f115" Language="Lua" Name="GameStartClick" Type="Extend" Source="None" Target="MOD.Core.TouchReceiveComponent" ModifyTime="2022-02-08T01:28:19.079991+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- GameStart 모델에서 사용하는 컴포넌트
+-- Lobby 중앙 포탈 엔티티를 클릭하면 동작
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleTouchReleaseEvent" EventName="TouchReleaseEvent" Target="self" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+--------------------------------------------------------
+
+local GameStartPanel = _EntityService:GetEntityByPath("/ui/GameStartUI/GameStartPanel")
+local DBUpgradeInfo = _EntityService:GetEntityByPath("/ui/DBUpgradeUI/DBUpgradeInfo")
+local GameMatchingPanel = _EntityService:GetEntityByPath("/ui/GameMatchingUI/GameMatchingPanel")
+
+if DBUpgradeInfo.Visible == false and GameMatchingPanel.Visible == false then
+	GameStartPanel:SetVisible(true)
+	GameStartPanel:SetEnable(true)
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

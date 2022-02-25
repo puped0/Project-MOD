@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="7a543c2e-9736-497b-b7a5-71c4616c4d8b" Language="Lua" Name="ExtendStateAnimationComponent" Type="Extend" Source="None" Target="MOD.Core.StateAnimationComponent" ModifyTime="2022-02-08T03:17:41.2748106+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 유닛, 몬스터, 플레이어, 건물, 몬스터 건물 ... 거의 모든 엔티티에 쓰임
+-- State 새로 추가
+-- State에 따른 엔티티의 동작을 반환
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+
+--[[
+Entity.StateComponent:RemoveState("IDLE")
+Entity.StateComponent:RemoveState("DEAD")
+Entity.StateComponent:RemoveState("HIT")
+
+Entity.StateComponent:AddState("STAND")
+Entity.StateComponent:AddState("MOVE")
+Entity.StateComponent:AddState("ATTACK")
+Entity.StateComponent:AddState("HIT")
+Entity.StateComponent:AddState("DIE")
+Entity.StateComponent:AddState("CLIMB")
+Entity.StateComponent:AddState("JUMP")
+Entity.StateComponent:AddState("SKILL")
+]]
+
+Entity.StateComponent:RemoveState("IDLE")
+Entity.StateComponent:RemoveState("DEAD")
+Entity.StateComponent:RemoveState("HIT")
+
+Entity.StateComponent:AddState("IDLE")
+Entity.StateComponent:AddState("MOVE")
+Entity.StateComponent:AddState("ATTACK")
+Entity.StateComponent:AddState("HIT")
+Entity.StateComponent:AddState("DEAD")
+Entity.StateComponent:AddState("CLIMB")
+Entity.StateComponent:AddState("JUMP")
+Entity.StateComponent:AddState("SKILL")
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="StateStringToAnimationKey" ExecSpace="All">
+      <Return Type="string" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="stateName" Type="string" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+return string.lower(stateName)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

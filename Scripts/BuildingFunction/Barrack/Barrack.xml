@@ -1,0 +1,160 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="f3d4e700-cc76-4d02-84ab-3a1a6cb146b1" Language="Lua" Name="Barrack" Type="Component" Source="None" ModifyTime="2022-02-08T00:04:00.8803009+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="NumOfProduction" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="EndTime" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="ModelID" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="ProductionTime" Type="table" DefaultValue="{}" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- NumOfProduction .. Server에서 수정하고 Server, Client 에서 참조
+-- EndTime .. 유닛 하나가 생산이 끝나는 시간, 하나 생산하면 다음 유닛의 생산 완료 시간을 넣음
+-- ModelID .. 유닛 ModelID 저장
+-- ProductionTime .. 유닛 생산에 드는 시간 저장
+
+-- 모델명 Barrak에서 사용되는 Component
+-- 유닛 생산과 관련된 코드
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 프로퍼티 초기화
+
+local UnitDataSet = _DataService:GetTable("Unit")
+local RowCount = UnitDataSet:GetRowCount()
+
+for i=1, RowCount do
+	local Name = UnitDataSet:GetCell(i, 1)
+	self.NumOfProduction[Name] = 0
+	self.EndTime[Name] = 0
+	self.ModelID[Name] = UnitDataSet:GetCell(i, 3)
+	self.ProductionTime[Name] = UnitDataSet:GetCell(i, 7)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnUpdate" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 생산 감지, 1초마다 감지함
+
+if self._T.time == nil then 
+	self._T.time = 0 
+end
+
+if self._T.time >= 1 then
+	self._T.time = 0
+	
+	for i, value in pairs(self.NumOfProduction) do
+		if value > 0 then
+			if self.EndTime[i] == 0 then
+				self.EndTime[i] = _UtilLogic.ElapsedSeconds + self.ProductionTime[i]
+			else
+				local diff = self.EndTime[i] - _UtilLogic.ElapsedSeconds
+				if diff > 0 then
+					self:SetShadow(i, 1 - (diff / self.ProductionTime[i]))
+				else
+					self.EndTime[i] = 0					
+					self:SetShadow(i, 0)	
+				
+					local UnitPosition = self.Entity.TransformComponent.Position:Clone() + Vector3((_UtilLogic:RandomDouble() - 0.5) * 2, 0, 0)
+					local Parent = self.Entity.CurrentMap
+				
+					self.NumOfProduction[i] = self.NumOfProduction[i] - 1
+					self:SetNumOfProduction(i, self.NumOfProduction[i])
+					_SpawnService:SpawnByModelId(self.ModelID[i], i, UnitPosition, Parent, nil)
+				end
+			end
+		else
+			self.EndTime[i] = 0
+			self:SetShadow(i, 0)
+		end
+	end
+end
+
+self._T.time = self._T.time + delta
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Production" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Name" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="Cost" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 생산 및 생산 예약
+local common = _EntityService:GetEntityByPath("/common")
+
+if self.NumOfProduction[Name] < 10 and common.Common:EarnMoney(-Cost) then
+	
+	self.NumOfProduction[Name] = self.NumOfProduction[Name] + 1
+	self:SetNumOfProduction(Name, self.NumOfProduction[Name])
+
+	-- 생산 로직...
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Cancel" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Name" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="Cost" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 생산 취소
+local common = _EntityService:GetEntityByPath("/common")
+if self.NumOfProduction[Name] > 0 and common.Common:EarnMoney(Cost) then
+
+	self.NumOfProduction[Name] = self.NumOfProduction[Name] - 1
+	self:SetNumOfProduction(Name, self.NumOfProduction[Name])
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetNumOfProduction" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Name" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="NumOfProduction" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 모든 클라이언트의 NumOfProduction(현재 생산중인 유낫 + 예약된 유닛 갯수)을 갱신해야 하므로
+-- targetUserId를 default 값인 nil로 설정
+local UnitList = _EntityService:GetEntityByPath("/ui/ProductionUI/ProductionInfo/UnitList")
+local CalledBy = _EntityService:GetEntityByPath("/ui/ProductionUI/ProductionInfo").ProductionUIManager.CalledBy
+
+self.NumOfProduction[Name] = NumOfProduction
+
+if self.Entity == CalledBy then
+	UnitList:GetChildByName(Name):GetChildByName("NumOfProduction").ProducingTextComponent:SetText(NumOfProduction)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetShadow" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Name" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="FillAmount" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 모든 클라이언트의 NumOfProduction(현재 생산중인 + 예약된 유닛 갯수)을 갱신해야 하므로
+-- targetUserId를 default 값인 nil로 설정
+local UnitList = _EntityService:GetEntityByPath("/ui/ProductionUI/ProductionInfo/UnitList")
+local CalledBy = _EntityService:GetEntityByPath("/ui/ProductionUI/ProductionInfo").ProductionUIManager.CalledBy
+
+if self.Entity == CalledBy then
+	UnitList:GetChildByName(Name):GetChildByName("Shadow", true).SpriteGUIRendererComponent.FillAmount = FillAmount
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

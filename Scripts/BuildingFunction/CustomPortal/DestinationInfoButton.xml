@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="8c74e277-d398-4fa8-be6c-e76f3f057b3e" Language="Lua" Name="DestinationInfoButton" Type="Component" Source="None" ModifyTime="2022-02-08T00:42:39.3569285+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="PortalEntityInfo" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/DestinationInfoUI/DestinationInfo/DestinationList/DestinationInfoExample
+-- 포탈 목적지 설정 버튼을 누를 때 동작 관련 코드
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="self" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+local DestinationInfo = _EntityService:GetEntityByPath("/ui/DestinationInfoUI/DestinationInfo")
+local CalledBy = DestinationInfo.DestinationUIManager.CalledBy
+local DestinationText = self.Entity:GetChildByName("Source").TextComponent.Text
+
+-- 현재 포탈이 멀쩡하면 목적지 설정
+if isvalid(CalledBy) then
+	CalledBy.CustomPortal:Destination(self.PortalEntityInfo, DestinationText)end
+
+-- 건물 사용 끝
+DestinationInfo.DestinationUIManager:SetUI(false)
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

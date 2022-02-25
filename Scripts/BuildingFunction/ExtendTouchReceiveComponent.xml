@@ -1,0 +1,758 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="bc85384b-2bae-49ff-92f5-301e9ccca30a" Language="Lua" Name="ExtendTouchReceiveComponent" Type="Extend" Source="None" Target="MOD.Core.TouchReceiveComponent" ModifyTime="2022-02-08T01:04:06.3745055+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="IsClick" Type="boolean" DefaultValue="false" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 모든 건물에서 사용하는 컴포넌트
+-- 건물 좌클릭 시 건물 관련 UI를 띄워줌
+-- 건물을 클릭할 때 마다 버튼 Enable과 버튼 이벤트 재설정 => 비효율적임... 수정 필요
+-- 건물 UI의 각 버튼의 동작 관련 코드가 있음
+-- Buy, Sell (상점) 미구현
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetAvailable" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="ButtonName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="Available" Type="boolean" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local ButtonList = _EntityService:GetEntityByPath("/ui/BuildingInfoUI/BuildingInfo/ButtonList")
+local Button = ButtonList:GetChildByName(ButtonName)
+
+--log("ButtonSet : " .. Button.Name)
+
+Button:SetVisible(Available)
+Button:SetEnable(Available)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="ButtonSet" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+--[[
+-- if문으로 코드 길이 최소화하면 가독성이 너무 떨어짐
+local BuildingName =  self.Entity.Building.Name
+
+if BuildingName == "Basement" then
+	self:SetAvailable("Information", true)
+	self:SetAvailable("Repair", true)
+	self:SetAvailable("Skill", true)
+	self:SetAvailable("Upgrade", true)
+	----------for debug-------------------
+	self:SetAvailable("Destruction", true)
+	--------------------------------------
+	--pass
+elseif BuildingName == "Repeater" then
+	self:SetAvailable("Information", true)
+	self:SetAvailable("Repair", true)
+	self:SetAvailable("Destruction", true)
+	--pass
+elseif BuildingName == "Barrack" then
+	self:SetAvailable("Information", true)
+	self:SetAvailable("Repair", true)
+	self:SetAvailable("Production", true)
+	self:SetAvailable("Destruction", true)
+	--pass
+elseif BuildingName == "Barricade1" then
+	self:SetAvailable("Information", true)
+	self:SetAvailable("Repair", true)
+	self:SetAvailable("Destruction", true)
+	--pass
+elseif BuildingName == "Barricade2" then
+	self:SetAvailable("Information", true)
+	self:SetAvailable("Repair", true)
+	self:SetAvailable("Destruction", true)
+	--pass
+elseif BuildingName == "CustomPortal" then
+	self:SetAvailable("Information", true)
+	self:SetAvailable("Repair", true)
+	self:SetAvailable("Destination", true)
+	self:SetAvailable("Destruction", true)
+	--pass
+elseif BuildingName == "HealingPlace" then
+	self:SetAvailable("Information", true)
+	self:SetAvailable("Repair", true)
+	self:SetAvailable("Destruction", true)
+	--pass
+elseif BuildingName == "Shop" then
+	self:SetAvailable("Information", true)
+	self:SetAvailable("Repair", true)
+	self:SetAvailable("Buy", true)
+	self:SetAvailable("Destruction", true)
+	--pass
+elseif BuildingName == "Ballista" then
+	self:SetAvailable("Information", true)
+	self:SetAvailable("Repair", true)
+	self:SetAvailable("Destruction", true)
+end 
+]]
+
+-- 너무 비대하고 비효율적인 코드임
+-- 고칠 필요 있음
+
+local PlayerRole = _UserService.LocalPlayer.InitRole.Role
+local BuildingName =  self.Entity.Building.BuildingInfo["Name"]
+
+if PlayerRole == "Builder" then
+	if BuildingName == "Basement" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("BuilderUpgrade", true)
+		----------for debug-------------------
+		--self:SetAvailable("Destruction", true)
+		--------------------------------------
+		--pass
+	elseif BuildingName == "Repeater" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "Barrack" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Production", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "Barricade1" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "Barricade2" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "CustomPortal" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destination", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "HealingPlace" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "Shop" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "Ballista" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destruction", true)
+	end
+elseif PlayerRole == "Character" then
+	if BuildingName == "Basement" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Skill", true)
+		self:SetAvailable("CharacterUpgrade", true)
+		--pass
+	elseif BuildingName == "Repeater" then
+		self:SetAvailable("Information", true)
+		--pass
+	elseif BuildingName == "Barrack" then
+		self:SetAvailable("Information", true)
+		--pass
+	elseif BuildingName == "Barricade1" then
+		self:SetAvailable("Information", true)
+		--pass
+	elseif BuildingName == "Barricade2" then
+		self:SetAvailable("Information", true)
+		--pass
+	elseif BuildingName == "CustomPortal" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Destination", true)
+		--pass
+	elseif BuildingName == "HealingPlace" then
+		self:SetAvailable("Information", true)
+		--pass
+	elseif BuildingName == "Shop" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Buy", true)
+		self:SetAvailable("Sell", true)
+	elseif BuildingName == "Ballista" then
+		self:SetAvailable("Information", true)
+		--pass
+	end
+elseif PlayerRole == "Hybrid" then
+	if BuildingName == "Basement" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Skill", true)
+		self:SetAvailable("BuilderUpgrade", true)
+		self:SetAvailable("CharacterUpgrade", true)
+		----------for debug-------------------
+		--self:SetAvailable("Destruction", true)
+		--------------------------------------
+		--pass
+	elseif BuildingName == "Repeater" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "Barrack" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Production", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "Barricade1" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "Barricade2" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "CustomPortal" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destination", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "HealingPlace" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "Shop" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destruction", true)
+		--pass
+	elseif BuildingName == "Ballista" then
+		self:SetAvailable("Information", true)
+		self:SetAvailable("Repair", true)
+		self:SetAvailable("Destruction", true)
+	end
+end
+
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="EventSet" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+
+--[[
+local BuildingName =  self.Entity.Building.Name
+local Buttons = _EntityService:GetEntityByPath("/ui/BuildingInfoUI/BuildingInfo").ButtonManager.Buttons
+local ButtonHandlers = _EntityService:GetEntityByPath("/ui/BuildingInfoUI/BuildingInfo").ButtonManager.ButtonHandlers
+
+if BuildingName == "Basement" then
+	ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+	ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+	ButtonHandlers[3] = Buttons[3]:ConnectEvent(ButtonClickEvent, self.Skill)
+	ButtonHandlers[4] = Buttons[4]:ConnectEvent(ButtonClickEvent, self.Upgrade)
+	----------for debug-------------------
+	ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+	--------------------------------------
+	--pass
+elseif BuildingName == "Repeater" then
+	ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+	ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+	ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+	--pass
+elseif BuildingName == "Barrack" then
+	ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+	ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+	ButtonHandlers[2] = Buttons[2]:ConnectEvent(ButtonClickEvent, self.Production)
+	ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+	--pass
+elseif BuildingName == "Barricade1" then
+	ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+	ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+	ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction) 
+	--pass
+elseif BuildingName == "Barricade2" then
+	ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+	ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+	ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+	--pass
+elseif BuildingName == "CustomPortal" then
+	ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+	ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+	ButtonHandlers[6] = Buttons[6]:ConnectEvent(ButtonClickEvent, self.Destination)
+	ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+	--pass
+elseif BuildingName == "HealingPlace" then
+	ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+	ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+	ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+	--pass
+elseif BuildingName == "Shop" then
+	ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+	ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+	ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+	--pass
+elseif BuildingName == "Ballista" then
+	ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+	ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+	ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+end
+]]
+
+-- 너무 비대하고 비효율적인 코드임
+-- 고칠 필요 있음
+
+local PlayerRole = _UserService.LocalPlayer.InitRole.Role
+local BuildingName =  self.Entity.Building.BuildingInfo["Name"]
+local Buttons = _EntityService:GetEntityByPath("/ui/BuildingInfoUI/BuildingInfo").ButtonManager.Buttons
+local ButtonHandlers = _EntityService:GetEntityByPath("/ui/BuildingInfoUI/BuildingInfo").ButtonManager.ButtonHandlers
+
+if PlayerRole == "Builder" then
+	if BuildingName == "Basement" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[10] = Buttons[10]:ConnectEvent(ButtonClickEvent, self.BuilderUpgrade)
+		----------for debug-------------------
+		--ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--------------------------------------
+		--pass
+	elseif BuildingName == "Repeater" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--pass
+	elseif BuildingName == "Barrack" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[2] = Buttons[2]:ConnectEvent(ButtonClickEvent, self.Production)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--pass
+	elseif BuildingName == "Barricade1" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction) 
+		--pass
+	elseif BuildingName == "Barricade2" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--pass
+	elseif BuildingName == "CustomPortal" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[6] = Buttons[6]:ConnectEvent(ButtonClickEvent, self.Destination)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--pass
+	elseif BuildingName == "HealingPlace" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--pass
+	elseif BuildingName == "Shop" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--pass
+	elseif BuildingName == "Ballista" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+	end
+elseif PlayerRole == "Character" then
+	if BuildingName == "Basement" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[4] = Buttons[4]:ConnectEvent(ButtonClickEvent, self.CharacterUpgrade)
+		ButtonHandlers[3] = Buttons[3]:ConnectEvent(ButtonClickEvent, self.Skill)
+		--pass
+	elseif BuildingName == "Repeater" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		--pass
+	elseif BuildingName == "Barrack" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		--pass
+	elseif BuildingName == "Barricade1" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		--pass
+	elseif BuildingName == "Barricade2" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		--pass
+	elseif BuildingName == "CustomPortal" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[6] = Buttons[6]:ConnectEvent(ButtonClickEvent, self.Destination)
+		--pass
+	elseif BuildingName == "HealingPlace" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		--pass
+	elseif BuildingName == "Shop" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[5] = Buttons[5]:ConnectEvent(ButtonClickEvent, self.Buy)
+		ButtonHandlers[9] = Buttons[9]:ConnectEvent(ButtonClickEvent, self.Sell)
+	elseif BuildingName == "Ballista" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		--pass
+	end
+elseif PlayerRole == "Hybrid" then
+	if BuildingName == "Basement" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[3] = Buttons[3]:ConnectEvent(ButtonClickEvent, self.Skill)
+		ButtonHandlers[10] = Buttons[10]:ConnectEvent(ButtonClickEvent, self.BuilderUpgrade)
+		ButtonHandlers[4] = Buttons[4]:ConnectEvent(ButtonClickEvent, self.CharacterUpgrade)
+		----------for debug-------------------
+		--ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--------------------------------------
+		--pass
+	elseif BuildingName == "Repeater" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--pass
+	elseif BuildingName == "Barrack" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[2] = Buttons[2]:ConnectEvent(ButtonClickEvent, self.Production)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--pass
+	elseif BuildingName == "Barricade1" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction) 
+		--pass
+	elseif BuildingName == "Barricade2" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--pass
+	elseif BuildingName == "CustomPortal" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[6] = Buttons[6]:ConnectEvent(ButtonClickEvent, self.Destination)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--pass
+	elseif BuildingName == "HealingPlace" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--pass
+	elseif BuildingName == "Shop" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+		--pass
+	elseif BuildingName == "Ballista" then
+		ButtonHandlers[1] = Buttons[1]:ConnectEvent(ButtonClickEvent, self.Information)
+		ButtonHandlers[7] = Buttons[7]:ConnectEvent(ButtonClickEvent, self.Repair)
+		ButtonHandlers[8] = Buttons[8]:ConnectEvent(ButtonClickEvent, self.Destruction)
+	end
+end
+
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Information" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Event" Type="any" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 건물의 정보만 읽어서 뿌려주면 되므로 client에서 수행하면 됨
+log("Information")
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Production" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Event" Type="any" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 유닛 생산
+-- 생산한 유닛을 모든 플레이어가 보고 상호작용할 수 있어야 하므로 server에서 수행해야 함
+local Role = _UserService.LocalPlayer.InitRole.Role
+local ProductionInfo = _EntityService:GetEntityByPath("/ui/ProductionUI/ProductionInfo")
+
+if Role == "Builder" then
+	_UserService.LocalPlayer.BuilderInput:DisableAllUI()
+elseif Role == "Hybrid" then
+	_UserService.LocalPlayer.HybridInput:DisableAllUI()
+end
+
+ProductionInfo.ProductionUIManager.CalledBy = self.Entity
+ProductionInfo.ProductionUIManager:RenewNumOfProduction()
+ProductionInfo.ProductionUIManager:SetUI(true)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Skill" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Event" Type="any" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 플레이어가 합성한 스킬 정보를 server가 저장하고 다뤄야 하므로 server에서 수행해야 함
+-- Builder와 Character가 다른 작업을 해야함(다른 UI) ... 일단 Character만 사용하도록 구현
+
+local Role = _UserService.LocalPlayer.InitRole.Role
+
+if Role == "Character" then
+	_UserService.LocalPlayer.CharacterInput:DisableAllUI()
+elseif Role == "Hybrid" then
+	_UserService.LocalPlayer.HybridInput:DisableAllUI()
+end
+
+local SkillInfo = _EntityService:GetEntityByPath("/ui/SkillUI/SkillInfo")
+local ItemSlotExample = _EntityService:GetEntityByPath("/ui/SkillUI/SkillInfo/SkillInventory/ItemSlotExample")
+local Items = _UserService.LocalPlayer.InventoryComponent:GetItemsWithType(Skill)
+
+local ItemSlots = _EntityService:GetEntitiesByPath("/ui/SkillUI/SkillInfo/SkillInventory/ItemSlot")
+
+SkillInfo.SkillUIManager.CalledBy = self.Entity
+
+for i, ItemSlot in pairs(ItemSlots) do
+	ItemSlot:SetVisible(false)
+	ItemSlot:SetEnable(false)
+end
+
+for i, Item in pairs(Items) do
+	local ItemIcon = ItemSlots[i].Children[1]
+	local ItemCount = ItemSlots[i].Children[2]
+	
+	ItemSlots[i].SkillInfoButton.ItemName = Item.ItemDataTableName
+	ItemIcon.SpriteGUIRendererComponent.ImageRUID = Item.IconRUID
+	ItemCount.TextComponent.Text = tostring(math.floor(Item.ItemCount))
+	
+	ItemSlots[i]:SetVisible(true)
+	ItemSlots[i]:SetEnable(true)
+end
+
+--[[
+local AttackSkillsInfo = _UserService.LocalPlayer.PlayerAttackComponent.AttackSkills
+local IsSkillSet =  _UserService.LocalPlayer.PlayerAttackComponent.IsSkillSet
+
+for i, value in pairs(IsSkillSet) do
+	local SkillSet = _EntityService:GetEntityByPath("/ui/SkillUI/SkillInfo/SkillSets/SkillSet" .. tostring(i))
+	local Skill = SkillSet.Children[1]
+	if value then
+		local SkillIcon = Skill.Children[1]
+		local SkillLevel = SkillIcon.Children[1]
+		local Upgrade = Skill.Children[2]
+		local ItemRef = AttackSkillsInfo[i]["ItemRef"]
+		
+		SkillIcon.SpriteGUIRendererComponent.ImageRUID = ItemRef.IconRUID
+		SkillLevel.TextComponent.Text = math.floor(ItemRef.ItemLevel)
+		Upgrade.TextComponent.Text = "강화하기\n( " .. math.floor(ItemRef.ItemUpgradeCount) .. " / " .. math.floor(ItemRef.ItemUpgradeMaxCount) .. ")"
+		
+		Skill:SetVisible(true)
+		Skill:SetEnable(true)
+	else
+		Skill:SetVisible(false)
+		Skill:SetEnable(false)
+	end
+end
+]]
+
+SkillInfo.SkillUIManager.CalledBy = self.Entity
+SkillInfo.SkillUIManager:SetUI(true)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="CharacterUpgrade" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 캐릭터 업그레이드 수행
+
+local CharacterUpgradeInfo = _EntityService:GetEntityByPath("/ui/CharacterUpgradeUI/CharacterUpgradeInfo")
+local Role = _UserService.LocalPlayer.InitRole.Role
+
+if Role == "Character" then
+	_UserService.LocalPlayer.CharacterInput:DisableAllUI()
+elseif Role == "Hybrid" then
+	_UserService.LocalPlayer.HybridInput:DisableAllUI()
+end
+
+CharacterUpgradeInfo.CharacterUpgradeUIManager.CalledBy = self.Entity
+CharacterUpgradeInfo.CharacterUpgradeUIManager:SetUI(true)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="BuilderUpgrade" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Event" Type="any" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 플레이어가 업그레이드 한 정보를 server에서 저장하고 다뤄야 하므로 server에서 수행해야 함
+-- Builder와 Character가 다른 작업을 해야함(다른 UI)
+
+local Role = _UserService.LocalPlayer.InitRole.Role
+local BuilderUpgradeInfo = _EntityService:GetEntityByPath("/ui/BuilderUpgradeUI/BuilderUpgradeInfo")
+
+if Role == "Builder" then
+	_UserService.LocalPlayer.BuilderInput:DisableAllUI()
+elseif Role == "Hybrid" then
+	_UserService.LocalPlayer.HybridInput:DisableAllUI()
+end
+
+BuilderUpgradeInfo.BuilderUpgradeUIManager.CalledBy = self.Entity
+BuilderUpgradeInfo.BuilderUpgradeUIManager:SetUI(true)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Buy" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Event" Type="any" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 플레이어가 구매한 아이템의 정보를 server에서 다뤄야 함
+log("Buy")
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Sell" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 아이템/스킬을 판 결과를 server에서 관리
+log("Sell")
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Destination" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Event" Type="any" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- Portal의 목적지 정보가 모든 플레이어에게 적용되어야 하므로 server에서 수행
+-- destinaion 설정 ui 띄우기
+
+local Role = _UserService.LocalPlayer.InitRole.Role
+
+if Role == "Builder" then
+	_UserService.LocalPlayer.BuilderInput:DisableAllUI()
+elseif Role == "Character" then
+	_UserService.LocalPlayer.CharacterInput:DisableAllUI()
+elseif Role == "Hybrid" then
+	_UserService.LocalPlayer.HybridInput:DisableAllUI()
+end
+
+local DestinationInfo = _EntityService:GetEntityByPath("/ui/DestinationInfoUI/DestinationInfo")
+local DestinationList = DestinationInfo:GetChildByName("DestinationList")
+local DestinationInfoExample = DestinationList:GetChildByName("DestinationInfoExample")
+local Portals = _EntityService:GetEntitiesByTag("customportal")
+
+local PrevPortals = _EntityService:GetEntitiesByPath("/ui/DestinationInfoUI/DestinationInfo/DestinationList/Destination")
+
+for i, Portal in pairs(PrevPortals) do
+	Portal:Destroy()
+end
+
+DestinationInfo.DestinationUIManager.CalledBy = self.Entity
+
+for i, Portal in pairs(Portals) do
+	if Portal ~= self.Entity then
+		local CopiedEntity = _SpawnService:Clone("Destination", DestinationInfoExample, DestinationList)
+		local CopiedEntityPosition = CopiedEntity:GetChildByName("Position")
+		local CopiedEntitySource = CopiedEntity:GetChildByName("Source")
+		local Position = Portal.TransformComponent.Position
+		local Source = Portal:GetChildByName("Source").SourceTextComponent.Source
+		
+		CopiedEntityPosition.TextComponent.Text = "(" .. math.floor(Position.x) .. ", " .. math.floor(Position.y) .. ")"
+		CopiedEntitySource.TextComponent.Text = Source
+		CopiedEntity.DestinationInfoButton.PortalEntityInfo = Portal
+	end;
+end
+
+DestinationInfo.DestinationUIManager:SetUI(true)
+
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Repair" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Event" Type="any" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- Repair 효과가 모든 플레이어에게 적용되고 보여야하므로 server에서 수행
+
+self.Entity.Building:Repair()
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Destruction" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Event" Type="any" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- destroy된 Entity가 모든 플레이어에게 동기화 되어야 하므로 server에서 수행
+
+local ButtonManager = _EntityService:GetEntityByPath("/ui/BuildingInfoUI/BuildingInfo").ButtonManager
+ButtonManager:ButtonReset()
+ButtonManager:EventReset()
+ButtonManager:SetUIEnable(false)
+
+self.Entity.Building:Destruction()
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleTouchEvent" EventName="TouchEvent" Target="self" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+--------------------------------------------------------
+self.IsClick = true
+]]></Code>
+    </CodeBlockEntityEventHandler>
+    <CodeBlockEntityEventHandler Name="HandleScreenTouchReleaseEvent" EventName="ScreenTouchReleaseEvent" Target="service:InputService" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local TouchPoint = event.TouchPoint
+--------------------------------------------------------
+wait(0.1)
+self.IsClick = false
+]]></Code>
+    </CodeBlockEntityEventHandler>
+    <CodeBlockEntityEventHandler Name="HandleTouchReleaseEvent" EventName="TouchReleaseEvent" Target="self" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+--------------------------------------------------------
+
+local Task = "idle" 
+local ButtonManager = _EntityService:GetEntityByPath("/ui/BuildingInfoUI/BuildingInfo").ButtonManager
+local MobileButtonManager = _EntityService:GetEntityByPath("/ui/DefaultGroup/MobileUI").MobileButtonManager
+local IsUIPressed = ButtonManager.IsPressed or MobileButtonManager.IsPressed
+
+if _UserService.LocalPlayer.InitRole == "Builder" then
+	local Task = _UserService.LocalPlayer.BuilderInput.Task
+elseif _UserService.LocalPlayer.InitRole == "Hybrid" then
+	local Task = _UserService.LocalPlayer.HybridInput.Task
+end
+
+-- 현재 수행중인 Task가 없을 때만 동작함
+-- 특정 UI와 건물 클릭이 겹쳤을 때 IsUIPressed로 중복 동작 방지
+if Task == "idle" and self.IsClick and IsUIPressed == false then
+	local BuildingInfo = _EntityService:GetEntityByPath("/ui/BuildingInfoUI/BuildingInfo")
+	local BuildingName = BuildingInfo:GetChildByName("BuildingName")
+	local ButtonManager = BuildingInfo.ButtonManager
+	
+	BuildingName.TextComponent.Text = self.Entity.Building.KoreanName
+	
+	if BuildingInfo.Visible == false then
+		self:ButtonSet()
+		self:EventSet()
+		ButtonManager:SetUIEnable(true)
+	else
+		ButtonManager:EventReset()
+		ButtonManager:ButtonReset()
+	
+		self:ButtonSet()
+		self:EventSet()
+	end
+end
+
+-- 원래는
+-- self.IsClick = true 로 돼있었음... 이유는 모르겠음
+self.IsClick = true
+--self.IsClick = false
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

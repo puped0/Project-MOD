@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="3d8aa1ec-5754-4ba4-84f4-8c68e0119ec3" Language="Lua" Name="MonsterMove" Type="BTNodeType" Source="None" ModifyTime="2022-02-08T02:05:42.5800618+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 몬스터의 단순 이동 동작
+
+if self.ParentAI.time >= self.ParentAI.tick  then
+	self.ParentAI.time = 0
+	
+	local MonsterEntity = self.ParentAI.Entity
+	local Direction = nil
+	local FlipX = false
+	local Position = MonsterEntity.TransformComponent.Position
+	local Destination = self.ParentAI.Destination
+	local CurrentState = MonsterEntity.StateComponent.CurrentStateName
+	
+	local Range = MonsterEntity.MonsterAIComponent.Range
+	
+	if Position.x > Destination.x + Range then
+		MonsterEntity.StateComponent:ChangeState("MOVE")
+		MonsterEntity.SpriteRendererComponent.FlipX = false
+		MonsterEntity.MovementComponent:MoveToDirection(Vector2(-1, 0), 0.1)
+	elseif Position.x < Destination.x - Range then
+		MonsterEntity.StateComponent:ChangeState("MOVE")
+		MonsterEntity.SpriteRendererComponent.FlipX = true
+		MonsterEntity.MovementComponent:MoveToDirection(Vector2(1, 0), 0.1)
+	elseif Destination.x - Range < Position.x and Destination.x + Range > Position.x and CurrentState ~= "IDLE" then
+		MonsterEntity.MonsterAIComponent.Source = Vector2(Position.x, Position.y)
+		MonsterEntity.StateComponent:ChangeState("IDLE")
+		MonsterEntity.MovementComponent:Stop()
+	end
+end
+
+return BehaviourTreeStatus.Success
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

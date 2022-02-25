@@ -1,0 +1,168 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="26002e51-1839-4e6e-a8f9-603f18a67417" Language="Lua" Name="UnitNormalChase" Type="BTNodeType" Source="None" ModifyTime="2022-02-08T03:13:19.8475187+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="PrevChaseTime" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="ChaseRange" Type="Vector2" DefaultValue="Vector2(2,1)" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 몬스터나 몬스터 건물을 추적
+
+if self.ParentAI.time >= self.ParentAI.tick then
+	local UnitEntity = self.ParentAI.Entity
+	local UnitAIComp = UnitEntity.UnitAIComponent
+	local UnitPosition = Vector2(UnitEntity.TransformComponent.Position.x, UnitEntity.TransformComponent.Position.y)
+	
+	local CurrentChaseTime = _UtilLogic.ElapsedSeconds
+
+	if CurrentChaseTime > self.PrevChaseTime + 2 then
+		self.PrevChaseTime = CurrentChaseTime
+		if not isvalid(UnitAIComp.TargetEntity) then
+				
+			local UnitSize = UnitEntity.HitComponent.BoxSize
+			local ChaseRange = UnitSize + self.ChaseRange*2
+			
+			local TriggerComponents = _CollisionService:GetMapServiceFor(UnitEntity):OverlapBox("TriggerBox", UnitPosition, ChaseRange)
+			
+			if TriggerComponents.Count <= 0 then
+				return BehaviourTreeStatus.Failure
+			end
+			
+			for i, value in pairs(TriggerComponents) do
+				if value.Entity.TagComponent ~= nil and value.Entity.TagComponent.Tags:Contains("enemy") then
+					UnitAIComp.TargetEntity = value.Entity
+					return BehaviourTreeStatus.Success
+				end
+			end
+		else
+			self.ParentAI.time = 0
+			
+			local UnitSize = UnitEntity.HitComponent.BoxSize
+			local TargetPosition = UnitAIComp.TargetEntity.TransformComponent.Position
+			
+			if TargetPosition.x < (UnitPosition.x - UnitSize.x/2 - self.ChaseRange.x) or TargetPosition.x > (UnitPosition.x + UnitSize.x/2 + self.ChaseRange.x) then
+				UnitAIComp.TargetEntity = nil
+			else
+				local TargetEntity = UnitAIComp.TargetEntity
+				local TargetPosition = Vector2(TargetEntity.TransformComponent.Position.x, TargetEntity.TransformComponent.Position.y)
+				local TargetBoxSize = TargetEntity.HitComponent.BoxSize
+				local UnitAttackRange = UnitEntity.Unit.UnitInfo["AttackRange"]
+				
+				if UnitPosition.x > TargetPosition.x then
+					UnitAIComp.Destination = Vector2(TargetPosition.x + (TargetBoxSize.x + UnitAttackRange.x/2)/2, TargetPosition.y)
+				else
+					UnitAIComp.Destination = Vector2(TargetPosition.x - (TargetBoxSize.x + UnitAttackRange.x/2)/2, TargetPosition.y)
+				end	
+				
+				self.ParentAI.Range = 0.5
+				return BehaviourTreeStatus.Success
+			end
+		end
+	end
+end
+
+return BehaviourTreeStatus.Failure
+
+--[[
+참고용 구버전
+local UnitEntity = self.ParentAI.Entity
+local CurrentChaseTime = _UtilLogic.ElapsedSeconds
+
+if self.ParentAI.time >= self.ParentAI.tick and CurrentChaseTime > self.PrevChaseTime + 2 then
+	
+	local UnitSize = UnitEntity.HitComponent.BoxSize
+	local UnitPosition = Vector2(UnitEntity.TransformComponent.Position.x, UnitEntity.TransformComponent.Position.y)
+	local ChaseRange = UnitSize + Vector2(3, 2)
+	
+	local TriggerComponents = _CollisionService:GetMapServiceFor(UnitEntity):OverlapBox("TriggerBox", UnitPosition, ChaseRange)
+	
+	local TargetEntity = nil
+	
+	if TriggerComponents.Count <= 0 then
+		return BehaviourTreeStatus.Failure
+	end
+	
+	for i, value in pairs(TriggerComponents) do
+		if value.Entity.TagComponent ~= nil and value.Entity.TagComponent.Tags:Contains("enemy") then
+			--self:RenewMonsterAI(value.Entity)
+			TargetEntity = value.Entity
+			break
+		end
+	end
+	
+	if TargetEntity ~= nil then
+		self.ParentAI.time = 0
+		self.PrevChaseTime = CurrentChaseTime
+		 
+		local TargetPosition = Vector2(TargetEntity.TransformComponent.Position.x, TargetEntity.TransformComponent.Position.y)
+		local TargetBoxSize = TargetEntity.HitComponent.BoxSize
+		local UnitAttackRange = UnitEntity.Unit.UnitInfo["AttackRange"]
+		UnitEntity.StateComponent:ChangeState("MOVE")
+		
+		if UnitPosition.x > TargetPosition.x then
+			self.ParentAI.Destination.x = TargetPosition.x + (TargetBoxSize.x + UnitAttackRange.x/2)/2
+		else
+			self.ParentAI.Destination.x = TargetPosition.x - (TargetBoxSize.x + UnitAttackRange.x/2)/2
+		end
+		
+		self.ParentAI.Range = 0.5
+		
+		return BehaviourTreeStatus.Success
+	else
+		return BehaviourTreeStatus.Failure
+	end
+
+end
+
+return BehaviourTreeStatus.Failure
+]]
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="RenewMonsterAI" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="MonsterEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 유닛 AI 노드를 갱신함으로써 렉을 줄이려는 의도
+-- 지금은 사용 안함
+
+local MonsterAIComp = MonsterEntity.MonsterAIComponent
+
+local IsActivated = MonsterAIComp.IsActivated
+
+if not IsActivated then
+	local MonsterComp = MonsterEntity.Monster
+	local AttackType = MonsterComp.AttackType
+	local Root = MonsterAIComp.Root
+	local Sel1 = MonsterAIComp.Sel1
+	
+	local MonsterChase = MonsterChase()
+	local MonsterAttack = nil
+	
+	if AttackType == "Normal" then
+		MonsterAttack = MonsterNormalAttack()
+	elseif AttackType == "Body" then
+		MonsterAttack = MonsterBodyAttack()
+	end
+	
+	MonsterAIComp:SetRootNode(nil)
+	Sel1:AttachChildAt(MonsterChase, 1)
+	Sel1:AttachChildAt(MonsterAttack, 1)
+	MonsterAIComp:SetRootNode(Root)
+	
+	MonsterAIComp.IsActivated = true
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

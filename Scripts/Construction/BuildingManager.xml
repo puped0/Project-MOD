@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="352e3fe4-e92d-4638-a22d-705f9200988b" Language="Lua" Name="BuildingManager" Type="Component" Source="None" ModifyTime="2022-02-08T01:08:27.5382555+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="index" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="FlipX" Type="boolean" DefaultValue="false" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /maps/GameMap
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="BuildOnGround" ExecSpace="Server">
+      <Return Type="void" DefaultValue="" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="TouchPoint" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+        <CodeBlockProperty Name="Info" Type="table" DefaultValue="{}" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 현재 맵에 건물 건설
+-- 원래는 맵에 건물 관리 프로퍼티가 있었음... => tag로 관리하도록 변경
+
+local Name = Info[1]
+local ModelId = Info[2]
+local FinalPositon = Info[3]
+local Scale = Info[4]
+local KoreanName = Info[5]
+self.FlipX = Info[6]
+
+local MapEntity = self.Entity
+
+--local Building = _SpawnService:SpawnByModelId(ModelId, Name .. math.floor(self.index), Vector3(FinalPositon.x, FinalPositon.y, 0), MapEntity, nil)
+local Building = _SpawnService:SpawnByModelId(ModelId, Name, Vector3(FinalPositon.x, FinalPositon.y, 0), MapEntity, nil)
+Building.Building.KoreanName = KoreanName
+
+self.index = self.index + 1
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

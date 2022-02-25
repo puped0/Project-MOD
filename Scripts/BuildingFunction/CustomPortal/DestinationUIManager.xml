@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="9374bf9f-c966-4402-8db5-f3dc0786c863" Language="Lua" Name="DestinationUIManager" Type="Component" Source="None" ModifyTime="2022-02-08T00:43:11.938262+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="CalledBy" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/DestinationInfoUI/DestinationInfo
+-- UI 온오프 관련 컴포넌트
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetUI" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Enable" Type="boolean" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local BuildingEntity = self.Entity
+
+if Enable == true then
+	self.CalledBy.Building:IncreaseUsingCount()
+else
+	self.CalledBy.Building:DecreaseUsingCount()
+end
+
+BuildingEntity:SetVisible(Enable)
+BuildingEntity:SetEnable(Enable)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="entity:7bd37a8b-e404-4d22-8329-db8464ebbcb5" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+if isvalid(self.CalledBy) then
+	self:SetUI(false)
+else
+	local DestinationInfo = _EntityService:GetEntityByPath("/ui/DestinationInfoUI/DestinationInfo")
+	
+	DestinationInfo:SetVisible(false)
+	DestinationInfo:SetEnable(false)
+end
+
+self.CalledBy = nil
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

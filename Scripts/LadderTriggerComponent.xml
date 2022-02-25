@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="a540102f-f002-42fc-b108-e288d9ea21fa" Language="Lua" Name="LadderTriggerComponent" Type="Extend" Source="None" Target="MOD.Core.TriggerComponent" ModifyTime="2022-02-08T03:19:25.6832455+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- CustomLadder에서 사용
+-- Ladder의 인식 판정을 크게 함
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+Entity.TriggerComponent.BoxOffset = Entity.ClimbableComponent.BoxOffset
+Entity.TriggerComponent.BoxSize = Entity.ClimbableComponent.BoxSize + Vector2(0, 1)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

@@ -1,0 +1,92 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="Monster" Language="Lua" Name="Monster_" Type="Component" Source="Template" ModifyTime="2022-01-19T21:25:51.5528283+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="2" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="MaxHp" Type="number" DefaultValue="100" SyncDirection="All" />
+    <CodeBlockProperty Name="Hp" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="RespawnOn" Type="boolean" DefaultValue="false" SyncDirection="All" />
+    <CodeBlockProperty Name="IsDead" Type="boolean" DefaultValue="false" SyncDirection="All" />
+    <CodeBlockProperty Name="RespawnDelay" Type="number" DefaultValue="5" SyncDirection="All" />
+    <CodeBlockProperty Name="DestroyDelay" Type="number" DefaultValue="0.6" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+self.Hp = self.MaxHp
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Dead" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+self.IsDead = true
+local stateComponent = self.Entity.StateComponent
+if stateComponent then
+	stateComponent:ChangeState("DEAD")
+	log("monster change state to DEAD")
+end
+
+local delayHide = function()
+	self.Entity:SetVisible(false)
+	self.Entity:SetEnable(false)
+	
+	if self.RespawnOn == false then
+		self.Entity:Destroy()
+	end
+end
+
+_TimerService:SetTimerOnce(delayHide, self.DestroyDelay)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Respawn" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+log("Respawn")
+self.IsDead = false
+self.Entity:SetVisible(true)
+self.Entity:SetEnable(true)
+
+self.Hp = self.MaxHp
+local stateComponent = self.Entity.StateComponent
+if stateComponent then
+	stateComponent:ChangeState("IDLE")
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleHitEvent" EventName="HitEvent" Target="self" Scope="All">
+      <Code><![CDATA[
+-- Parameters
+local AttackCenter = event.AttackCenter
+local AttackerEntity = event.AttackerEntity
+local Damages = event.Damages
+local Extra = event.Extra
+local FeedbackAction = event.FeedbackAction
+local IsCritical = event.IsCritical
+local TotalDamage = event.TotalDamage
+--------------------------------------------------------
+if self:IsClient() then return end
+
+local originalHp = self.Hp
+self.Hp = self.Hp - TotalDamage
+
+if self.Hp > 0 or originalHp <= 0 then
+	return	
+end
+
+self:Dead()
+local timerFunc = function() self:Respawn() end
+
+if self.RespawnOn then
+	_TimerService:SetTimerOnce(timerFunc, self.RespawnDelay)
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

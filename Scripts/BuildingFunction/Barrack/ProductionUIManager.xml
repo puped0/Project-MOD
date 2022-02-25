@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="879994ea-7c81-40f2-a4e1-619c97166f5c" Language="Lua" Name="ProductionUIManager" Type="Component" Source="None" ModifyTime="2022-01-22T01:06:52.3230886+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="CalledBy" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- Unit 정보를 가진 유닛생산 버튼 관련 함수들
+-- 버튼생성, 정보갱신, Close 버튼 동작
+-- /ui/ProductionUI/ProductionInfo
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local UnitDataSet = _DataService:GetTable("Unit")
+local RowCount = UnitDataSet:GetRowCount()
+
+local UnitList = _EntityService:GetEntityByPath("/ui/ProductionUI/ProductionInfo/UnitList")
+local UnitInfoExample = _EntityService:GetEntityByPath("/ui/ProductionUI/ProductionInfo/UnitList/UnitInfoExample")
+for i=1, RowCount do
+	local RowData = {}
+	for j=1, 6 do
+		table.insert(RowData, j, UnitDataSet:GetCell(i,j))
+	end
+	
+	local CopiedEntity = _SpawnService:Clone(RowData[1], UnitInfoExample, UnitList)
+	local CopiedEntityUnitImage = CopiedEntity:GetChildByName("UnitImage")
+	local CopiedEntityDescription = CopiedEntity:GetChildByName("Description")
+	local CopiedEntityName = CopiedEntity:GetChildByName("Name")
+	local CopiedEntityCost = CopiedEntity:GetChildByName("Cost")
+	
+	CopiedEntityUnitImage.SpriteGUIRendererComponent.ImageRUID = RowData[2]
+	CopiedEntityDescription.TextComponent.Text = RowData[4]
+	CopiedEntityName.TextComponent.Text = RowData[5]
+	CopiedEntityCost.TextComponent.Text = RowData[6]
+	
+	CopiedEntity.UnitInfoButton.Name = RowData[1]
+	CopiedEntity.UnitInfoButton.ModelID = RowData[3]
+	CopiedEntity.UnitInfoButton.KoreanName = RowData[5]
+	CopiedEntity.UnitInfoButton.Cost = RowData[6]
+	
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="RenewNumOfProduction" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local UnitList = self.Entity:GetChildByName("UnitList")
+local NumOfProduction = self.CalledBy.Barrack.NumOfProduction
+
+for i, value in pairs(NumOfProduction) do
+	UnitList:GetChildByName(i):GetChildByName("NumOfProduction").ProducingTextComponent:SetText(value)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetUI" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Enable" Type="boolean" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local BuildingEntity = self.Entity
+
+if Enable == true then
+	self.CalledBy.Building:IncreaseUsingCount()
+else
+	self.CalledBy.Building:DecreaseUsingCount()
+end
+
+BuildingEntity:SetVisible(Enable)
+BuildingEntity:SetEnable(Enable)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="entity:58fefa7d-4dbf-4c38-816d-10880fbb4ed7" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+if isvalid(self.CalledBy) then
+	self:SetUI(false)
+else
+	local ProductionInfo = _EntityService:GetEntityByPath("/ui/ProductionUI/ProductionInfo")
+	
+	ProductionInfo:SetVisible(false)
+	ProductionInfo:SetEnable(false)
+end
+
+self.CalledBy = nil
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

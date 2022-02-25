@@ -1,0 +1,85 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="143bc48f-3d7e-4729-846b-f119ff8b3df1" Language="Lua" Name="_chase" Type="BTNodeType" Source="None" ModifyTime="2022-01-17T17:00:17.3842152+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local ret = BehaviourTreeStatus.Failure
+
+if self.ParentAI.time >= 1 then
+	local CanChasePlayerNum = self.ParentAI.CanChasePlayerNum
+	
+	if CanChasePlayerNum > 0 then
+		local MonsterEntity = self.ParentAI.Entity
+		local ChasePlayer = nil
+		
+		ChasePlayer = self:ClosestPlayerSearch(MonsterEntity)
+		
+		if ChasePlayer == nil then
+			return ret
+		else
+			self.ParentAI.time = 0
+			
+			local PlayerPos = ChasePlayer.TransformComponent.Position
+			local MonsterPos = MonsterEntity.TransformComponent.Position
+			
+			MonsterEntity.StateComponent:ChangeState("CHASE")
+			
+			if PlayerPos.x > MonsterPos.x then
+				MonsterEntity.SpriteRendererComponent.FlipX = true
+				MonsterEntity.MovementComponent:MoveToDirection(Vector2(1, 0), 0)
+			else
+				MonsterEntity.SpriteRendererComponent.FlipX = false
+				MonsterEntity.MovementComponent:MoveToDirection(Vector2(-1, 0), 0)
+			end
+			
+			log("chase")
+			
+			ret = BehaviourTreeStatus.Success
+		end
+	end
+end
+
+return ret
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="ClosestPlayerSearch" ExecSpace="All">
+      <Return Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="MonsterEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local CanChasePlayers = self.ParentAI.CanChasePlayers
+local MinDistance = 99999999
+local ClosestPlayer = nil
+
+local MonsterPos = MonsterEntity.TransformComponent.Position:Clone()
+MonsterPos.z = 0
+
+for name, entity in pairs(CanChasePlayers) do
+	local PlayerPos = entity.TransformComponent.Position:Clone()
+	local distance = 0
+	
+	PlayerPos.z = 0
+	
+	distance = Vector3.Distance(MonsterPos, PlayerPos)
+	
+	if distance < MinDistance then
+		MinDistance = distance
+		ClosestPlayer = entity
+	end
+end
+
+return ClosestPlayer
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

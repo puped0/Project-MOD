@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="ca5d1ea2-a6b6-484e-8144-e920f607f870" Language="Lua" Name="HealingPlace" Type="Component" Source="None" ModifyTime="2022-02-08T00:48:15.6315206+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="TimerId" Type="table" DefaultValue="{}" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- HealingPlace 모델에서 사용하는 컴포넌트
+-- 플레이어가 HealingPlace 건물 근처에 오면(TriggerEnter 발생) 체력을 회복시키는 Timer를 생성
+-- 건물에서 떨어지면(TriggerLeave 발생) Timer 삭제
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Heal" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="PlayerEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+return function()
+	if isvalid(PlayerEntity) and PlayerEntity.StateComponent.CurrentStateName ~= "DEAD" then
+		local HealEffect = "9acc7ba7139143f9a3077dc9aca435cd"
+		_EffectService:PlayEffectAttached(HealEffect, PlayerEntity, Vector3.zero, 0, Vector3.one, false)
+		PlayerEntity.ExtendPlayerComponent:CalcDmg(-200)
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleTriggerEnterEvent" EventName="TriggerEnterEvent" Target="self" Scope="Server">
+      <Code><![CDATA[
+-- Parameters
+local TriggerBodyEntity = event.TriggerBodyEntity
+--------------------------------------------------------
+if TriggerBodyEntity.PlayerComponent ~= nil then
+	self.TimerId[TriggerBodyEntity.Name] = _TimerService:SetTimerRepeat(self:Heal(TriggerBodyEntity), 1, 0)
+end
+
+]]></Code>
+    </CodeBlockEntityEventHandler>
+    <CodeBlockEntityEventHandler Name="HandleTriggerLeaveEvent" EventName="TriggerLeaveEvent" Target="self" Scope="Server">
+      <Code><![CDATA[
+-- Parameters
+local TriggerBodyEntity = event.TriggerBodyEntity
+--------------------------------------------------------
+
+if TriggerBodyEntity.PlayerComponent ~= nil then
+	_TimerService:ClearTimer(self.TimerId[TriggerBodyEntity.Name])
+	self.TimerId[TriggerBodyEntity.Name] = nil
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

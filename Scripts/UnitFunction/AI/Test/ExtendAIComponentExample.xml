@@ -1,0 +1,156 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="2e36eafb-fcd7-477a-8183-0697f836d1ec" Language="Lua" Name="ExtendAIComponentExample" Type="Extend" Source="None" Target="MOD.Core.AIComponent" ModifyTime="2022-01-17T17:21:57.2471789+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="time" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="CanChasePlayerNum" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="CanChasePlayers" Type="dictionary" DefaultValue="string|Entity" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+local entity = self.Entity
+
+wait(1)
+
+self:StateSettingInit()
+
+local root = SequenceNode()
+local sel = SelectorNode()
+local ransel = RandomSelectorNode()
+
+local _move = _move()
+local _attack = _attack()
+local _chase = _chase()
+local _timer = _timer()
+local _climb = _climb()
+
+root:AttachChild(sel)
+
+
+sel:AttachChild(_timer)
+--sel:AttachChild(attack)
+--sel:AttachChild(chase)
+--sel:AttachChild(_climb)
+sel:AttachChild(_move)
+
+entity.AIComponent:SetRootNode(root)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="StateSettingInit" ExecSpace="Multicast">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+local entity = self.Entity
+local StateComponent = entity.StateComponent
+local ActionSheet = entity.StateAnimationComponent.ActionSheet
+
+--[[
+StateComponent:RemoveState("MOVE")
+StateComponent:RemoveState("IDLE")
+StateComponent:RemoveState("HIT")
+StateComponent:RemoveState("DEAD")
+
+
+if self:IsServer() then
+	log("server")
+elseif self:IsClient() then
+	log("client")
+end
+
+for key, value in pairs(ActionSheet) do
+	
+	if key == "move" then
+		entity.StateComponent:AddState(key, function()
+			local isFaceLeft = entity.SpriteRendererComponent.FlipX
+			local dest = Vector2.zero
+			
+			if isFaceLeft == true then
+				dest = Vector2(1,0)
+			else
+				dest = Vector2(-1,0)
+			end
+			entity.MovementComponent:MoveToDirection(dest, 0)	
+		end)
+	elseif key == "stand" then
+		entity.StateComponent:AddState(key, function()
+			entity.MovementComponent:Stop()
+		end)
+	else
+		entity.StateComponent:AddState(key)
+	end
+end
+]]
+
+entity.StateComponent:AddState("MOVE")
+--entity.StateComponent:AddState("IDLE")
+entity.StateComponent:AddState("ATTACK")
+
+entity.StateComponent:AddState("CHASE")
+--entity.ExtendStateAnimationComponent:SetActionSheet("chase", "81f26d1496e641f886c3879214454210")
+
+entity.MovementComponent.InputSpeed = 0.5
+entity.TriggerComponent.BoxSize.x = 4
+entity.TriggerComponent.BoxSize.y = 2
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="IsPlayer" ExecSpace="All">
+      <Return Type="boolean" DefaultValue="false" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="entity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local player = _UserService:GetUserEntityByUserId(entity.Name)
+
+if player == nil then
+	return false
+else
+	return true
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleTriggerEnterEvent" EventName="TriggerEnterEvent" Target="self" Scope="Server">
+      <Code><![CDATA[
+-- Parameters
+local TriggerBodyEntity = event.TriggerBodyEntity
+--------------------------------------------------------
+
+if self:IsPlayer(TriggerBodyEntity) then
+	self.CanChasePlayers[TriggerBodyEntity.Name] = TriggerBodyEntity
+	self.CanChasePlayerNum = self.CanChasePlayerNum + 1
+end
+
+]]></Code>
+    </CodeBlockEntityEventHandler>
+    <CodeBlockEntityEventHandler Name="HandleTriggerLeaveEvent" EventName="TriggerLeaveEvent" Target="self" Scope="Server">
+      <Code><![CDATA[
+-- Parameters
+local TriggerBodyEntity = event.TriggerBodyEntity
+--------------------------------------------------------
+
+if self:IsPlayer(TriggerBodyEntity) then
+	self.CanChasePlayers[TriggerBodyEntity.Name] = nil
+	self.CanChasePlayerNum = self.CanChasePlayerNum - 1
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+    <CodeBlockEntityEventHandler Name="HandleUserLeaveEvent" EventName="UserLeaveEvent" Target="service:UserService" Scope="All">
+      <Code><![CDATA[
+-- Parameters
+local UserId = event.UserId
+--------------------------------------------------------
+
+if self.CanChasePlayers[UserId] ~= nil then
+	self.CanChasePlayers[UserId] = nil
+	self.CanChasePlayerNum = self.CanChasePlayerNum - 1
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

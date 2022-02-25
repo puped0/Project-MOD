@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="9bd783a3-e811-4cf9-b3a6-da4a615728dd" Language="Lua" Name="UnitAIComponent" Type="Extend" Source="None" Target="MOD.Core.AIComponent" ModifyTime="2022-02-08T23:41:07.7892541+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="time" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="tick" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="Source" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="Destination" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="InteractionEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+    <CodeBlockProperty Name="Range" Type="number" DefaultValue="1.5" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackTimerId" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="TargetEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 모든 Unit 모델에서 사용하는 컴포넌트
+-- Unit AI 노드 연결
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+local Position = Entity.TransformComponent.Position
+self.Destination = Vector2(Position.x, Position.y)
+
+-- 행동 틱 0.4초
+self.tick = 0.4
+
+local AttackType = Entity.Unit.UnitInfo["AttackType"]
+
+local Root = SequenceNode()
+local Seq1 = SequenceNode()
+local Sel1 = SelectorNode()
+
+
+local UnitTimer = UnitTimer()
+local UnitMove = UnitMove()
+local UnitInteraction = UnitInteraction()
+local UnitAttack = nil
+local UnitChase = nil
+
+-- 공격 타입에 따라 Normal과 Heal로 나뉨
+if AttackType == "Normal" then
+	UnitAttack = UnitNormalAttack()
+	UnitChase = UnitNormalChase()
+elseif AttackType == "Heal" then
+	UnitAttack = UnitHeal()
+	UnitChase = UnitHealChase()
+end
+
+Root:AttachChild(Seq1)
+
+Seq1:AttachChild(UnitTimer)
+Seq1:AttachChild(Sel1)
+
+Sel1:AttachChild(UnitInteraction)
+Sel1:AttachChild(UnitAttack)
+Sel1:AttachChild(UnitChase)
+Sel1:AttachChild(UnitMove)
+
+Entity.AIComponent:SetRootNode(Root)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

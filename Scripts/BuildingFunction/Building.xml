@@ -1,0 +1,167 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="0aa3421f-3321-4053-838f-949293dfa322" Language="Lua" Name="Building" Type="Component" Source="None" ModifyTime="2022-02-08T00:51:36.8346114+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="BuildingInfo" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="Name" Type="string" DefaultValue="&quot;&quot;" SyncDirection="All" />
+    <CodeBlockProperty Name="KoreanName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="All" />
+    <CodeBlockProperty Name="Hp" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="RepairInterval" Type="number" DefaultValue="1" SyncDirection="None" />
+    <CodeBlockProperty Name="RepairTimerId" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="UsingCount" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="IsMainBuilding" Type="boolean" DefaultValue="false" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 모든 건물에서 사용하는 컴포넌트(Basement, Barrack, Barricade ... )
+-- 건물 정보 저장 및 관리
+-- 철거, 파괴, 수리, 피격, 데미지 계산, 건물 사용 여부 관리
+-- 건물 관련 엔티티 생성(체력바)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+local Common = _EntityService:GetEntityByPath("/common")
+local Name = _UtilLogic:Split(Entity.Name, "_")[1]
+
+self.BuildingInfo = Common.Common.Building[Name]
+
+
+
+if self:IsServer() then
+	self.Hp = self.BuildingInfo["MaxHp"] * 0.05
+	
+	local HpBarBackgroundModelID = "model://ce410025-08d3-4748-b9e2-f841bb6983b0"
+	local HpBarBackground = _SpawnService:SpawnByModelId(HpBarBackgroundModelID, "BuildingHpBarBackground", Vector3.zero, Entity, nil)
+	
+	--Entity.SpriteRendererComponent.FlipX = Entity.CurrentMap.BuildingManager.FlipX
+	
+	wait(10)
+	if isvalid(Entity) then
+		self.Hp = self.BuildingInfo["MaxHp"]
+		self:Hit()
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Repair" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local common = _EntityService:GetEntityByPath("/common")
+
+local callback = function()
+	if common.Common:EarnMoney(-20) then
+		self:CalcDmg(-100)
+		
+		if self.Hp >= self.BuildingInfo["MaxHp"] then
+			_TimerService:ClearTimer(self.RepairTimerId)
+			self.RepairTimerId = 0
+		end
+		self.Entity:GetChildByName("BuildingHpBarText", true).BuildingHpBarTextComponent:SetHp(self.Hp, self.BuildingInfo["MaxHp"])
+	else
+		_TimerService:ClearTimer(self.RepairTimerId)
+		self.RepairTimerId = 0
+	end
+end
+
+if self.RepairTimerId == 0 then
+	self.RepairTimerId = _TimerService:SetTimerRepeat(callback, self.RepairInterval, self.RepairInterval)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Destruction" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+if self.UsingCount == 0 then
+	_TimerService:ClearTimer(self.RepairTimerId)
+	self.Entity:Destroy()
+else
+	log("사용중인 건물입니다.")
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="IncreaseUsingCount" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+self.UsingCount = self.UsingCount + 1
+--log(tostring(self.Entity) .. " => " .. self.Entity.Building.UsingCount)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="DecreaseUsingCount" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+self.UsingCount = self.UsingCount - 1
+--log(tostring(self.Entity) .. " => " .. self.Entity.Building.UsingCount)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Destroy" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- Destruction과는 다르게 누가 사용중이더라도 무조건 파괴
+-- => 사용중인 유저의 UI를 강제로 꺼야함
+
+local Entity = self.Entity
+
+if self.IsMainBuilding == true then
+	local Commom = _EntityService:GetEntityByPath("/common")
+	Commom.Common:GameOver(false)
+end
+
+_TimerService:ClearTimer(self.RepairTimerId)
+Entity:Destroy()
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Hit" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+Entity:GetChildByName("BuildingHpBarText", true).BuildingHpBarTextComponent:SetHp(self.Hp, self.BuildingInfo["MaxHp"])
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="CalcDmg" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="damage" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+self.Hp = self.Hp - damage
+
+if self.Hp > self.BuildingInfo["MaxHp"] then
+	self.Hp = self.BuildingInfo["MaxHp"]
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleHitEvent" EventName="HitEvent" Target="self" Scope="Server">
+      <Code><![CDATA[
+-- Parameters
+local AttackCenter = event.AttackCenter
+local AttackerEntity = event.AttackerEntity
+local Damages = event.Damages
+local Extra = event.Extra
+local FeedbackAction = event.FeedbackAction
+local IsCritical = event.IsCritical
+local TotalDamage = event.TotalDamage
+--------------------------------------------------------
+
+local Entity = self.Entity
+
+local originalHp = self.Hp
+self:CalcDmg(TotalDamage)
+
+if self.Hp <= 0 then
+	self:Destroy()
+else
+	self:Hit()
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

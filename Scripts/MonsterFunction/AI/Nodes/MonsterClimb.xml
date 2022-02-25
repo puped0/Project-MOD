@@ -1,0 +1,142 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="acb08600-ab5b-489c-af48-8ee660bc217e" Language="Lua" Name="MonsterClimb" Type="BTNodeType" Source="None" ModifyTime="2022-02-08T02:05:52.6049939+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="Destination_y" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="Direction" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="TouchPoint" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 몬스터가 사다리를 타기 위한 동작
+
+if self.ParentAI.time >= self.ParentAI.tick then
+	local CanClimb = self.ParentAI.CanClimb
+	local LadderEntered = self.ParentAI.LadderEntered
+	
+	-- TriggerComponent의 CanClimb 설정을 기다림
+	if CanClimb == true then
+		-- 몬스터가 사다리와 접촉했을 때
+		local MonsterEntity = self.ParentAI.Entity
+		local MonsterPosition = MonsterEntity.TransformComponent.Position 
+		
+		local LadderEntity = self.ParentAI.LadderEntity
+		local LadderPosition = LadderEntity.TransformComponent.Position
+		local LadderBoxOffset = LadderEntity.TriggerComponent.BoxOffset
+		local LadderBoxSize = LadderEntity.TriggerComponent.BoxSize
+		
+		self.TouchPoint = self.ParentAI.Destination
+		
+		-- 목적지 좌표와 몬스터 좌표를 비교해 사다리를 탈 필요가 있는지 판단
+		if MonsterEntity.RigidbodyComponent.IsQuaterViewMove == false then
+			if self.TouchPoint.y - 1 > MonsterPosition.y then
+				self.Destination_y = LadderPosition.y + LadderBoxOffset.y + LadderBoxSize.y/2
+				self.Direction = "Up"
+			elseif self.TouchPoint.y + 1 < MonsterPosition.y then
+				self.Destination_y = LadderPosition.y + LadderBoxOffset.y - LadderBoxSize.y/2
+				self.Direction = "Down"
+			else
+				-- 사다리를 탈 필요가 없는 경우
+				self.ParentAI.CanClimb = false
+				self.ParentAI.LadderEntity = nil
+				return BehaviourTreeStatus.Failure
+			end
+			
+			MonsterEntity.RigidbodyComponent.IsQuaterViewMove = true
+			MonsterEntity.StateComponent:ChangeState("CLIMB")
+			MonsterEntity.MovementComponent:SetPosition(Vector2(MonsterPosition.x, MonsterPosition.y))
+		end
+		
+		self.ParentAI.time = 0
+		
+		-- 사다리를 타야하는 경우...
+		-- Destination_y 위치까지 이동하면 Climb 동작을 멈춤
+		if self.Direction == "Up" then
+			--if self.Destination_y - 1 > MonsterPosition.y then
+			if self.Destination_y - 0.5 > MonsterPosition.y then
+				MonsterEntity.MovementComponent:MoveToDirection(Vector2(0,1), 1)
+			else
+				self.Direction = "Stop"
+			end
+		elseif self.Direction == "Down" then
+			if self.Destination_y + 1 < MonsterPosition.y then
+				MonsterEntity.MovementComponent:MoveToDirection(Vector2(0,-1), 1)
+			else
+				self.Direction = "Stop"
+			end
+		elseif self.Direction == "Stop" then
+			MonsterEntity.RigidbodyComponent.IsQuaterViewMove = false
+			MonsterEntity.StateComponent:ChangeState("IDLE")
+			MonsterEntity.MovementComponent:Stop()
+			MonsterEntity.MovementComponent:SetPosition(Vector2(MonsterPosition.x, MonsterPosition.y))
+			
+			self.ParentAI.Range = 1.5
+			self.ParentAI.CanClimb = false
+			self.ParentAI.LadderEntity = nil
+		end
+		
+		return BehaviourTreeStatus.Success
+	end
+end
+
+return BehaviourTreeStatus.Failure
+
+--[[
+if self.ParentAI.time >= self.ParentAI.tick  then
+	local MonsterEntity = self.ParentAI.Entity 
+	local CanClimb = self.ParentAI.CanClimb
+	local LadderEntity = self.ParentAI.LadderEntity
+	
+	if CanClimb == true then
+		self.ParentAI.time = 0
+
+		local Position = MonsterEntity.TransformComponent.Position
+		
+		if MonsterEntity.RigidbodyComponent.IsQuaterViewMove == false then
+			MonsterEntity.RigidbodyComponent.IsQuaterViewMove = true
+			MonsterEntity.StateComponent:ChangeState("CLIMB")
+			MonsterEntity.MovementComponent:SetPosition(Vector2(Position.x, Position.y))
+		end
+		
+		if self.Direction == "Up" then
+			if self.Destination_y> Position.y then
+				MonsterEntity.MovementComponent:MoveToDirection(Vector2(0,1), 1)
+				--log("climbing up")
+			else
+				self.Direction = "Stop"
+			end
+		elseif self.Direction == "Down" then
+			if self.Destination_y + 1 < Position.y then
+				MonsterEntity.MovementComponent:MoveToDirection(Vector2(0,-1), 1)
+				--log("climbing down")
+			else
+				self.Direction = "Stop"
+			end
+		elseif self.Direction == "Stop" then
+			MonsterEntity.RigidbodyComponent.IsQuaterViewMove = false
+			MonsterEntity.StateComponent:ChangeState("STAND")
+			MonsterEntity.MovementComponent:Stop()
+			MonsterEntity.MovementComponent:SetPosition(Vector2(Position.x, Position.y))
+			
+			self.ParentAI.Range = 1.5
+			self.ParentAI.CanClimb = false
+		end
+		
+		return BehaviourTreeStatus.Success
+	end
+end
+
+return BehaviourTreeStatus.Failure
+]]
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

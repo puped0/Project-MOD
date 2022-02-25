@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="c1e62047-a06c-4b9f-aa54-89c3812ed2bb" Language="Lua" Name="SourceTextComponent" Type="Extend" Source="None" Target="MOD.Core.TextComponent" ModifyTime="2022-02-08T00:38:32.9723061+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="Source" Type="string" DefaultValue="&quot;&quot;" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- CustomPortal 모델의 자식 엔티티인 Source 모델에서 사용하는 컴포넌트
+-- 포탈의 이름 설정 ... 목적지 설정시 이 이름을 사용함
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+self.Entity.SourceTextComponent.Text = self.Source
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetSource" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Source" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+self.Source = Source
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleTextInputEndEditEvent" EventName="TextInputEndEditEvent" Target="self" Scope="All">
+      <Code><![CDATA[
+-- Parameters
+local text = event.text
+--------------------------------------------------------
+self:SetSource(text)
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

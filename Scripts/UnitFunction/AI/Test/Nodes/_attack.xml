@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="a29dd296-a084-4cc1-9522-e4dc5d1b4686" Language="Lua" Name="_attack" Type="BTNodeType" Source="None" ModifyTime="2022-01-17T17:00:14.0809837+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local ret = BehaviourTreeStatus.Failure
+
+if self.ParentAI.time >= 1 then
+	
+	local CanChasePlayerNum = self.ParentAI.CanChasePlayerNum
+	
+	if CanChasePlayerNum > 0 then
+		
+		local MonsterEntity = self.ParentAI.Entity
+		
+		local MonsterPos = MonsterEntity.TransformComponent.Position:Clone()
+		local BoxOffset = MonsterEntity.HitComponent.BoxOffset
+		local BoxSize = MonsterEntity.HitComponent.BoxSize
+		
+		local BoxCenter = Vector2(MonsterPos.x, MonsterPos.y) + BoxOffset
+		local BoxLeftBottom = BoxCenter - BoxSize
+		local BoxRightTop = BoxCenter + BoxSize
+		
+		local CanChasePlayers = self.ParentAI.CanChasePlayers
+
+		local PlayerEntity = nil
+		
+		for name, entity in pairs(CanChasePlayers) do
+			
+			local PlayerPos = entity.TransformComponent.Position:Clone()
+			
+			if (PlayerPos.x > BoxLeftBottom.x and PlayerPos.x < BoxRightTop.x) and (PlayerPos.y > BoxLeftBottom.y and PlayerPos.y < BoxRightTop.y) then
+				PlayerEntity = entity
+				break
+			end
+		end
+		
+		if PlayerEntity ~= nil then
+			self.ParentAI.time = 0
+			
+			--log(PlayerEntity)
+			
+			local PlayerPos = PlayerEntity.TransformComponent.Position
+			
+			MonsterEntity.StateComponent:ChangeState("ATTACK")
+			MonsterEntity.MovementComponent:Stop()
+			
+			if PlayerPos.x > MonsterPos.x then
+				MonsterEntity.SpriteRendererComponent.FlipX = true
+			else
+				MonsterEntity.SpriteRendererComponent.FlipX = false
+			end
+			
+			log("attack")
+			
+			ret = BehaviourTreeStatus.Success
+		end
+	end
+end
+
+return ret
+
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

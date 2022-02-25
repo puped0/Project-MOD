@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="e094abc1-aba7-45ae-a32d-c3b9cd226f5a" Language="Lua" Name="UnitInfoButton" Type="Component" Source="None" ModifyTime="2022-02-08T20:05:40.3217465+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="Name" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="ModelID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="KoreanName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="Cost" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="ProductionTime" Type="number" DefaultValue="0" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/ProductionUI/ProductionInfo/UnitList/UnitInfoExample
+-- 위의 경로는 UI 탬플릿이고 실제 엔티티 이름은 유닛 이름임
+-- 버튼과 관련된 유닛 정보 저장
+-- 버튼 클릭 시 유닛 생산
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="self" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+--log(self.KoreanName .. " " .. self.Cost .. "원")
+
+local ProductionInfo = _EntityService:GetEntityByPath("/ui/ProductionUI/ProductionInfo")
+local CalledBy = ProductionInfo.ProductionUIManager.CalledBy
+local Money = _EntityService:GetEntityByPath("/common").Common.BuilderMoney
+
+if isvalid(CalledBy) then
+	if Money >= self.Cost then
+		CalledBy.Barrack:Production(self.Name, self.Cost)
+	else
+		--log("돈이 부족합니다.")
+	end
+else
+	ProductionInfo:SetVisible(false)
+	ProductionInfo:SetEnable(false)
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

@@ -1,0 +1,182 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="d9a55920-77e1-4069-8a0a-10ad1177256a" Language="Lua" Name="MonsterHitComponent" Type="Extend" Source="None" Target="MOD.Core.HitComponent" ModifyTime="2022-02-08T20:03:51.3721778+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="LastHitTime" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="BleedingCoeff" Type="number" DefaultValue="1" SyncDirection="None" />
+    <CodeBlockProperty Name="FreezingTimer" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="BurningTimer" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="BleedingTimer" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="FreezingEffectSerial" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="BurningEffectSerial" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="BleedingEffectSerial" Type="number" DefaultValue="0" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 모든 Monster 모델에서 사용하는 컴포넌트
+-- 몬스터의 피격 관련 코드
+-- 몬스터 피격 쿨타임, 피격 여부 관리
+-- 공격자의 공격 정보에 따라 상태이상 부여(이동속도 감소, 최대체력 비레 틱뎀, 추가 데미지, 넉백)
+-- 방어력이 데미지보다 높으면 피격 무시
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="IsHitTarget" ExecSpace="All">
+      <Return Type="boolean" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+local ImmuneCooldown = self.Entity.Monster.ImmuneCooldown
+local currentTime = _UtilLogic.ElapsedSeconds
+
+if self.LastHitTime + ImmuneCooldown < currentTime then
+	self.LastHitTime = _UtilLogic.ElapsedSeconds
+	return true
+end
+
+return false
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnHit" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="attacker" Type="Entity" SyncDirection="None" />
+        <CodeBlockProperty Name="damage" Type="int" SyncDirection="None" />
+        <CodeBlockProperty Name="isCritical" Type="boolean" SyncDirection="None" />
+        <CodeBlockProperty Name="attackInfo" Type="string" SyncDirection="None" />
+        <CodeBlockProperty Name="hitCount" Type="int" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Entity = self.Entity
+local Defence = Entity.Monster.Defence
+
+if damage > 0 then
+	if Defence < damage then
+		--_SoundService:PlaySoundAtPos(Entity.Monster.HitSoundRUID, Entity.TransformComponent.Position, Entity, 1)
+		local EffectInfo = _UtilLogic:Split(attackInfo, "_")
+		
+		if EffectInfo[1] ~= "Normal" and EffectInfo[2] ~= "Nothing" then
+			self:SetSkillEffect(attacker, EffectInfo[2], tonumber(EffectInfo[3]))
+		end
+
+		__base:OnHit(attacker, (damage - Defence) * self.BleedingCoeff,isCritical,attackInfo,hitCount)
+	end
+else
+	Entity.Monster:CalcDmg(damage)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetSkillEffect" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="attacker" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+        <CodeBlockProperty Name="EffectType" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="EffectAmount" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 스킬 이펙트 관련 함수가 아니라 스킬에 있는 부가효과를 발동시키는 함수
+
+
+local Entity = self.Entity
+local Position = Vector3(0, Entity.HitComponent.BoxSize.y, 0)
+
+if EffectType == "Freezing" then
+	local OriginalSpeed = self.Entity.MovementComponent.InputSpeed
+	self.Entity.MovementComponent.InputSpeed = self.Entity.MovementComponent.InputSpeed / 2
+	_TimerService:ClearTimer(self.FreezingTimer)
+	_EffectService:RemoveEffect(self.FreezingEffectSerial)
+	self.FreezingTimer = _TimerService:SetTimerOnce(self.Freezing, EffectAmount)
+	self.FreezingEffectSerial = _EffectService:PlayEffectAttached("02c022f3ecf9459a98198a5c312e4977", Entity, Position, 0, Vector3.one, true)
+elseif EffectType == "Burning" then
+	_TimerService:ClearTimer(self.BurningTimer)
+	_EffectService:RemoveEffect(self.BurningEffectSerial)
+	self.BurningTimer = _TimerService:SetTimerOnce(self:Burning(EffectAmount), 1)
+	self.BurningEffectSerial = _EffectService:PlayEffectAttached("521b6c51d0ff425093bc14f89b6cd223", Entity, Position, 0, Vector3.one, true)
+elseif EffectType == "Bleeding" then
+	self.BleedingCoeff = 1.1
+	_TimerService:ClearTimer(self.BleedingTimer)
+	_EffectService:RemoveEffect(self.BleedingEffectSerial)
+	self.BleedingTimer = _TimerService:SetTimerOnce(self.Bleeding, EffectAmount)
+	self.BleedingEffectSerial = _EffectService:PlayEffectAttached("903aff3108ca436aa018ef8b2afe9102", Entity, Position, 0, Vector3.one, true)
+elseif EffectType == "KnockBack" then
+	self:KnockBack(attacker, EffectAmount)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Freezing" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="OriginalSpeed" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if isvalid(self) then
+	self.Entity.MovementComponent.InputSpeed = self.Entity.MovementComponent.InputSpeed * 2
+	_EffectService:RemoveEffect(self.FreezingEffectSerial)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Burning" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="RemainTime" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+return function()
+	local Entity = self.Entity
+	if isvalid(Entity) then
+		RemainTime = RemainTime - 1
+		
+		if RemainTime >= 0 then
+			local Hp = Entity.Monster.Hp
+			local MaxHp = Entity.Monster.MaxHp
+			if Hp > MaxHp * 0.1 then
+				Entity.Monster:CalcDmg(MaxHp*0.05)
+			else
+				Entity.Monster:CalcDmg(Hp - 1)
+			end
+			
+			self.BurningTimer = _TimerService:SetTimerOnce(self:Burning(RemainTime), 1)
+		else
+			_EffectService:RemoveEffect(self.BurningEffectSerial)
+		end
+	else
+		_EffectService:RemoveEffect(self.BurningEffectSerial)
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Bleeding" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+if isvalid(self) then
+	self.BleedingCoeff = 1
+	_EffectService:RemoveEffect(self.BleedingEffectSerial)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="KnockBack" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="attacker" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+        <CodeBlockProperty Name="EffectAmount" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Entity = self.Entity
+local attackerPosition = attacker.TransformComponent.Position
+local MonsterPosition = Entity.TransformComponent.Position
+local Direction = nil
+	
+if attackerPosition.x > MonsterPosition.x then
+	Direction = -1
+else
+	Direction = 1
+end
+	
+Entity.RigidbodyComponent:SetForce(Vector2(EffectAmount * Direction, 1))
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

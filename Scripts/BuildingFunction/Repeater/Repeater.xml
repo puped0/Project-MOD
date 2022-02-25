@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="e2138673-ac99-4bba-a463-311887082917" Language="Lua" Name="Repeater" Type="Component" Source="None" ModifyTime="2022-02-08T00:49:38.8534244+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- Repeater 모델
+-- Repeater 생성 시 건물 건설 가능 구역인 RepeaterZone 생성
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+
+local EntityPosition = Entity.TransformComponent.Position
+local BoxOffset = Entity.HitComponent.BoxOffset
+local BoxSize = Entity.HitComponent.BoxSize
+local Scale = Entity.TransformComponent.Scale
+
+local RepeaterZoneName = "RepeaterZone"
+local RepeaterZoneModelID = "model://74c03740-4b4c-43be-afc1-789c63470781"
+local RepeaterZonePosition = Vector3(EntityPosition.x, EntityPosition.y + BoxOffset.y - BoxSize.y/2, 0)
+local RepeaterZone = _SpawnService:SpawnByModelId(RepeaterZoneModelID, RepeaterZoneName, Vector3.zero, Entity, nil)
+	
+RepeaterZone.UITransformComponent.WorldPosition = RepeaterZonePosition
+RepeaterZone:SetVisible(false)
+RepeaterZone:SetEnable(false)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

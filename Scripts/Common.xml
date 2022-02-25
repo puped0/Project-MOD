@@ -1,0 +1,454 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="6135c840-6f68-4b7f-bc25-6f625a2027f4" Language="Lua" Name="Common" Type="Component" Source="None" ModifyTime="2022-02-08T03:15:27.0467921+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="BuilderMoney" Type="number" DefaultValue="1000" SyncDirection="All" />
+    <CodeBlockProperty Name="ItemsLevelCategory" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="CharacterUpgradeInfo" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="BuilderUpgradeInfo" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="DBUpgradeInfo" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="BuilderUpgradeLevel" Type="dictionary" DefaultValue="string|number" SyncDirection="All" />
+    <CodeBlockProperty Name="Building" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="Unit" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="InitMaxHp" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="MonsterBuildingInfo" Type="table" DefaultValue="{}" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /common
+-- 건물, 유닛, 업그레이드 관련 정보 읽어옴
+-- 몬스터 건물 관리
+-- 게임 진행 관리
+-- 건축가의 돈 관리
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnInitialize" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 1 ~ 10레벨 별로 아이템 구별하여 저장
+-- 1레벨 몬스터는 1레벨 아이템만 드랍
+-- n레벨 몬스터는 n레벨 아이템만 드랍
+if self:IsServer() then
+	
+-------------------------------------------
+	
+	for i=1, 10 do
+		self.ItemsLevelCategory[i] = {}
+	end
+	
+	local ItemDataSet = _DataService:GetTable("UserItemDataSet")
+	local RowCount = ItemDataSet:GetRowCount()
+	
+	for i=1, RowCount do
+		local ItemRowData = ItemDataSet:GetRow(i)
+		local ItemName = ItemRowData:GetItem("Name")
+		local MonsterLevel = tonumber(ItemRowData:GetItem("MonsterLevel"))
+		table.insert(self.ItemsLevelCategory[MonsterLevel], ItemName)
+	end
+	
+-------------------------------------------
+	
+	-- 몬스터 스폰건물 갯수 저장
+	-- 1레벨부터 10레벨까지 구별하여 저장
+	-- 저장은 몬스터 건물 초기화 때 각자 저장
+	-- AddMonsterBuilding()
+	
+	for i=1, 10 do
+		self.MonsterBuildingInfo[i] = {}
+	end
+	
+-------------------------------------------	
+end
+-------------------------------------------------------------------------------
+
+local BuildingDataSet = _DataService:GetTable("Building")
+local AllRowData = BuildingDataSet:GetAllRow()
+
+for i, RowData in pairs(AllRowData) do
+	local Name = RowData:GetItem("Name")
+	self.Building[Name] = {}
+	
+	local RowTable = self.Building[Name]
+	RowTable["Name"] = Name
+	RowTable["MaxHp"] = tonumber(RowData:GetItem("MaxHp"))
+	RowTable["Attack"] = tonumber(RowData:GetItem("Attack"))
+	RowTable["Defence"] = tonumber(RowData:GetItem("Defence"))
+	RowTable["AttackRange"] = Vector2(tonumber(RowData:GetItem("AttackRange_x")), tonumber(RowData:GetItem("AttackRange_y")))
+	RowTable["AttackOffset"] = Vector2(tonumber(RowData:GetItem("AttackOffset_x")), tonumber(RowData:GetItem("AttackOffset_y")))
+	RowTable["AttackCooldown"] = tonumber(RowData:GetItem("AttackCooldown"))
+	
+	self.InitMaxHp[Name] = RowTable["MaxHp"]
+end
+
+-------------------------------------------------------------------------------
+
+local UnitDataSet = _DataService:GetTable("Unit")
+AllRowData = UnitDataSet:GetAllRow()
+
+for i, RowData in pairs(AllRowData) do
+	local Name = RowData:GetItem("Name")
+	self.Unit[Name] = {}
+	
+	local RowTable = self.Unit[Name]
+	RowTable["Name"] = Name
+	RowTable["MaxHp"] = tonumber(RowData:GetItem("MaxHp"))
+	RowTable["Attack"] = tonumber(RowData:GetItem("Attack"))
+	RowTable["Defence"] = tonumber(RowData:GetItem("Defence"))
+	RowTable["AttackType"] = RowData:GetItem("AttackType")
+	RowTable["DieDelay"] = tonumber(RowData:GetItem("DieDelay"))
+	RowTable["HitDelay"] = tonumber(RowData:GetItem("HitDelay"))
+	RowTable["ImmuneCooldown"] = tonumber(RowData:GetItem("ImmuneCooldown"))
+	RowTable["AttackDelay"] = tonumber(RowData:GetItem("AttackDelay"))
+	RowTable["AttackCooldown"] = tonumber(RowData:GetItem("AttackCooldown"))
+	RowTable["AttackRange"] = Vector2(tonumber(RowData:GetItem("AttackRange_x")), tonumber(RowData:GetItem("AttackRange_y")))
+	RowTable["AttackOffset"] = Vector2(tonumber(RowData:GetItem("AttackOffset_x")), tonumber(RowData:GetItem("AttackOffset_y")))
+	RowTable["MaxAttackCount"] = tonumber(RowData:GetItem("MaxAttackCount"))
+	
+	self.InitMaxHp[Name] = RowTable["MaxHp"]
+end
+
+-------------------------------------------------------------------------------
+
+local CharUpInfoDataSet = _DataService:GetTable("CharacterUpgradeInfo")
+AllRowData = CharUpInfoDataSet:GetAllRow()
+
+for i, RowData in pairs(AllRowData) do
+	local Name = RowData:GetItem("Name")
+	self.CharacterUpgradeInfo[Name] = {}
+	
+	local RowTable = self.CharacterUpgradeInfo[Name]
+	RowTable["Amount"] = tonumber(RowData:GetItem("Amount"))
+	RowTable["InitCost"] = tonumber(RowData:GetItem("InitCost"))
+	RowTable["IncreasementCost"] = tonumber(RowData:GetItem("IncreasementCost"))
+end
+
+-------------------------------------------------------------------------------
+
+local BuilderUpInfoDataSet = _DataService:GetTable("BuilderUpgradeInfo")
+AllRowData = BuilderUpInfoDataSet:GetAllRow()
+
+for i, RowData in pairs(AllRowData) do
+	local Name = RowData:GetItem("Name")
+	self.BuilderUpgradeInfo[Name] = {}
+	
+	local RowTable = self.BuilderUpgradeInfo[Name]
+	RowTable["Amount"] = tonumber(RowData:GetItem("Amount"))
+	RowTable["InitCost"] = tonumber(RowData:GetItem("InitCost"))
+	RowTable["IncreasementCost"] = tonumber(RowData:GetItem("IncreasementCost"))
+	
+	self.BuilderUpgradeLevel[Name] = 1
+end
+
+-------------------------------------------------------------------------------
+
+local DBUpInfo = _DataService:GetTable("DBUpgradeInfo")
+AllRowData = DBUpInfo:GetAllRow()
+
+for i, RowData in pairs(AllRowData) do
+	local Name = RowData:GetItem("Name")
+	self.DBUpgradeInfo[Name] = {}
+	
+	local RowTable = self.DBUpgradeInfo[Name]
+	RowTable["Amount"] = tonumber(RowData:GetItem("Amount"))
+	RowTable["InitCost"] = tonumber(RowData:GetItem("InitCost"))
+	RowTable["IncreasementCost"] = tonumber(RowData:GetItem("IncreasementCost"))
+	
+	self.BuilderUpgradeLevel[Name] = 1
+end
+--[[
+for i, value1 in pairs(self.Unit) do
+	log(i)
+	for j, value2 in pairs(value1) do
+		log(j .. " " .. tostring(value2))
+	end
+end
+]]
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="StatUpgrade" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="StatName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="Amount" Type="number" DefaultValue="0" SyncDirection="None" />
+        <CodeBlockProperty Name="Cost" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local CanUpgrade = self:EarnMoney(-Cost)
+	
+if CanUpgrade then
+	if StatName == "BarricadeMaxHp" then
+		local Barricade1 = self.Building["Barricade1"]
+		local Barricade2 = self.Building["Barricade2"]
+		local Barricade1Amount = self.InitMaxHp["Barricade1"] * Amount
+		local Barricade2Amount = self.InitMaxHp["Barricade2"] * Amount
+		Barricade1["MaxHp"] = Barricade1["MaxHp"] + Barricade1Amount
+		Barricade2["MaxHp"] = Barricade2["MaxHp"] + Barricade2Amount
+		self:SyncEntityInfo("Building", "Barricade1", "MaxHp", Barricade1["MaxHp"])
+		self:SyncEntityInfo("Building", "Barricade2", "MaxHp", Barricade2["MaxHp"])
+		
+		local Barricade1Entities = _EntityService:GetEntitiesByTag("barricade1")
+		for i, Entity in pairs(Barricade1Entities) do
+			Entity.Building.Hp = Entity.Building.Hp + Barricade1Amount
+			Entity:GetChildByName("BuildingHpBarText", true).BuildingHpBarTextComponent:SetHp(Entity.Building.Hp, Barricade1["MaxHp"])
+		end
+		
+		local Barricade2Entities = _EntityService:GetEntitiesByTag("barricade2")
+		for i, Entity in pairs(Barricade2Entities) do
+			Entity.Building.Hp = Entity.Building.Hp + Barricade2Amount
+			Entity:GetChildByName("BuildingHpBarText", true).BuildingHpBarTextComponent:SetHp(Entity.Building.Hp, Barricade2["MaxHp"])
+		end
+	
+	elseif StatName == "BarricadeDefence" then
+		local Barricade1 = self.Building["Barricade1"]
+		local Barricade2 = self.Building["Barricade2"]
+		Barricade1["Defence"] = Barricade1["Defence"] + Amount
+		Barricade2["Defence"] = Barricade2["Defence"] + Amount
+		self:SyncEntityInfo("Building", "Barricade1", "Defence", Barricade1["Defence"])
+		self:SyncEntityInfo("Building", "Barricade2", "Defence", Barricade2["Defence"])
+		
+	elseif StatName == "BallistaAttack" then
+		local Ballista = self.Building["Ballista"]
+		Ballista["Attack"] = Ballista["Attack"] + Amount
+		self:SyncEntityInfo("Building", "Ballista", "Attack", Ballista["Attack"])
+		
+	elseif StatName == "ShortRangeUnitAttack" then
+		local CygnusAttacker1 = self.Unit["CygnusAttacker1"]
+		local CygnusAttacker2 = self.Unit["CygnusAttacker2"]
+		CygnusAttacker1["Attack"] = CygnusAttacker1["Attack"] + Amount
+		CygnusAttacker2["Attack"] = CygnusAttacker2["Attack"] + Amount
+		self:SyncEntityInfo("Unit", "CygnusAttacker1", "Attack", CygnusAttacker1["Attack"])
+		self:SyncEntityInfo("Unit", "CygnusAttacker2", "Attack", CygnusAttacker2["Attack"])
+		
+	elseif StatName == "LongRangeUnitAttack" then
+		local CygnusAttacker3 = self.Unit["CygnusAttacker3"]
+		local ResistanceAttacker1 = self.Unit["ResistanceAttacker1"]
+		CygnusAttacker3["Attack"] = CygnusAttacker3["Attack"] + Amount
+		ResistanceAttacker1["Attack"] = ResistanceAttacker1["Attack"] + Amount
+		self:SyncEntityInfo("Unit", "CygnusAttacker3", "Attack", CygnusAttacker3["Attack"])
+		self:SyncEntityInfo("Unit", "ResistanceAttacker1", "Attack", ResistanceAttacker1["Attack"])
+		
+	elseif StatName == "UnitMaxHp" then
+		for Name, UnitInfo in pairs(self.Unit) do
+			UnitInfo["MaxHp"] = UnitInfo["MaxHp"] + self.InitMaxHp[Name] * Amount
+			self:SyncEntityInfo("Unit", Name, "MaxHp", UnitInfo["MaxHp"])
+		end
+	elseif StatName == "UnitDefence" then
+		for Name, UnitInfo in pairs(self.Unit) do
+			UnitInfo["Defence"] = UnitInfo["Defence"] + Amount
+			self:SyncEntityInfo("Unit", Name, "Defence", UnitInfo["Defence"])
+		end
+	end
+	
+	self.BuilderUpgradeLevel[StatName] = self.BuilderUpgradeLevel[StatName] + 1
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SyncEntityInfo" ExecSpace="Client">
+      <Return Type="void" DefaultValue="" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="EntityType" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="EntityName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="StatName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="value" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if EntityType == "Building" then
+	local Info = self.Building[EntityName]
+	Info[StatName] = value
+elseif EntityType == "Unit" then
+	local Info = self.Unit[EntityName]
+	Info[StatName] = value
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnSyncProperty" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="name" Type="string" SyncDirection="None" />
+        <CodeBlockProperty Name="value" Type="any" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if name == "BuilderMoney" then
+	local MoneyInfo = _EntityService:GetEntityByPath("/ui/DefaultGroup/Money/MoneyInfo")
+	MoneyInfo.TextComponent.Text = math.floor(self.BuilderMoney)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="EarnMoney" ExecSpace="Server">
+      <Return Type="boolean" DefaultValue="false" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Charge" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if self.BuilderMoney + Charge >= 0 then
+	self.BuilderMoney = self.BuilderMoney + Charge
+	return true
+else
+	log("돈이 부족합니다.")
+	return false
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="AddMonsterBuilding" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Level" Type="number" DefaultValue="0" SyncDirection="None" />
+        <CodeBlockProperty Name="MonsterBuilding" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local BuildingTable = self.MonsterBuildingInfo[Level]
+table.insert(BuildingTable, MonsterBuilding)
+
+--log("Added MonsterBuilding : " .. MonsterBuilding.Name)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="RemoveMonsterBuilding" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Level" Type="number" DefaultValue="0" SyncDirection="None" />
+        <CodeBlockProperty Name="MonsterBuilding" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local IsRemoved = false
+local BuildingTable = self.MonsterBuildingInfo[Level]
+
+for i, value in pairs(BuildingTable) do
+	if value == MonsterBuilding then
+		table.remove(BuildingTable, i)
+		IsRemoved = true
+		break
+	end
+end
+
+--log("Removed MonsterBuilding : " .. MonsterBuilding.Name)
+
+if IsRemoved and self:IsAllDestroyed() then
+	self:GameOver(true)
+	return
+end
+
+if IsRemoved and Level < 10 then
+	local UpperBuildingTable = self.MonsterBuildingInfo[Level+1]
+	if self:IsAllDestroyed_Level(Level) then
+		for i, value in pairs(UpperBuildingTable) do
+			if not value.MonsterBuilding.IsSpawnSet then
+				value.MonsterBuilding:SetMonsterSpawnTimer()
+			end
+		end
+	else
+		for i, value in pairs(UpperBuildingTable) do
+			if not value.MonsterBuilding.IsSpawnSet then
+				value.MonsterBuilding:SetMonsterSpawnTimer()
+				break
+			end
+		end
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="IsAllDestroyed_Level" ExecSpace="ServerOnly">
+      <Return Type="boolean" DefaultValue="false" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Level" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local BuildingTable = self.MonsterBuildingInfo[Level]
+return #BuildingTable == 0
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="IsAllDestroyed" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+for i, BuildingTable in pairs(self.MonsterBuildingInfo) do
+	if #BuildingTable > 0 then
+		return false
+	end
+end
+
+return true
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetResultUI" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Enable" Type="boolean" SyncDirection="None" />
+        <CodeBlockProperty Name="Win" Type="boolean" SyncDirection="None" />
+        <CodeBlockProperty Name="UpgradePoint" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local ResultPanel = _EntityService:GetEntityByPath("/ui/ResultUI/ResultPanel")
+
+if Enable then
+	ResultPanel.ResultUIManager:SetResult(Win, UpgradePoint)
+end
+
+ResultPanel.ResultUIManager:SetUI(Enable)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="GameOver" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Win" Type="boolean" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local AllUsers = _UserService.UserEntities
+
+local returnFunc = function()
+	local Users = {}
+	for Name, User in pairs(AllUsers) do
+		local Tags = User.TagComponent.Tags
+		
+		if Tags:Contains("hybrid") then
+			Tags:Remove("hybrid")
+			User:RemoveComponent("HybridInput")
+			User.InitRole:SetMoneyPanel(false, User.Name)
+		elseif Tags:Contains("builder") then
+			Tags:Remove("builder")
+			User:RemoveComponent("BuilderInput")
+		elseif Tags:Contains("character") then
+			Tags:Remove("character")
+			User:RemoveComponent("CharacterInput")
+			User.InitRole:SetMoneyPanel(false, User.Name)
+		end
+		
+		self:SetResultUI(false, false, 0, User.Name)
+		Users[#Users+1] = User.Name
+	end
+	
+	_InstanceMapService:MoveUsersToParentMap(Users)
+end
+
+for Name, User in pairs(AllUsers) do
+	local UpgradePoint = 0
+	
+	local MonsterKillCount = User.ExtendPlayerComponent.MonsterKillCount
+	local MonsterBuildingDestroyCount = User.ExtendPlayerComponent.MonsterBuildingDestroyCount 
+	
+	for Level=1, 10 do
+		UpgradePoint = UpgradePoint +  MonsterKillCount[Level] * Level + MonsterBuildingDestroyCount[Level] * Level * 100
+	end
+	
+	--log(User.Name .. " => " .. UpgradePoint)
+	
+	if User.InitRole.Role == "Hybrid" then 
+		UpgradePoint = UpgradePoint / 3
+	elseif User.InitRole.Role == "Builder" then
+		UpgradePoint = UpgradePoint / 2
+	end
+	
+	self:SetResultUI(true, Win, UpgradePoint, User.Name)
+	User.ExtendPlayerComponent:EarnUpgradePoint(UpgradePoint)
+end
+
+log("GameOver")
+_TimerService:SetTimerOnce(returnFunc, 10)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

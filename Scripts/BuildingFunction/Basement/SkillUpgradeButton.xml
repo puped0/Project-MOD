@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="d45d7875-b861-404b-adf7-89c25adbac32" Language="Lua" Name="SkillUpgradeButton" Type="Component" Source="None" ModifyTime="2022-02-08T18:05:21.9350964+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/SkillUI/SkillInfo/SkillSets/SkillSlot_1/Skill/Upgrade
+-- Basement 건물 동작
+-- Skill UI에서 스킬 업그레이드 버튼 관련 동작
+-- 업그레이드 버튼을 누르면 인벤토리에서 동일 스킬 아이템 하나를 소모하면서 스킬을 1만큼 업그레이드
+-- 일정 수치 이상 스킬을 업그레이드 하면 스킬 성능 향상
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="self" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+
+-- 스킬 업그레이드 버튼을 누를 때의 동작
+
+local LocalPlayer = _UserService.LocalPlayer
+local SkillInfoUI = _EntityService:GetEntityByPath("/ui/SkillUI/SkillInfo")
+local CalledBy = SkillInfoUI.SkillUIManager.CalledBy
+
+-- 건물이 부숴졌을 경우 UI 동작이 무효하므로 UI를 강제로 끔
+if not isvalid(CalledBy) then
+	SkillInfoUI:SetVisible(false)
+	SkillInfoUI:SetEnable(false)
+	return
+end
+
+-- 건물과 플레이어간 거리가 3 이상이면 UI를 강제로 끔... 건물 근처에서만 업그레이드 하게끔 하기 위함
+local PlayerPosition = Vector2(LocalPlayer.TransformComponent.Position.x, LocalPlayer.TransformComponent.Position.y)
+local BuildingPosition = Vector2(CalledBy.TransformComponent.Position.x, CalledBy.TransformComponent.Position.y)
+
+if Vector2.Distance(PlayerPosition, BuildingPosition) > 3 then
+	SkillInfoUI.SkillUIManager:SetUI(false)
+	return
+end
+
+
+local SkillEntity = Entity.Parent
+local SkillSlotEntity = SkillEntity.Parent
+local Index = tonumber(_UtilLogic:Split(SkillSlotEntity.Name, "_")[2])
+
+local SkillSlot = LocalPlayer.PlayerAttackComponent.SkillSlots[Index]
+local IsSkillSet = LocalPlayer.PlayerAttackComponent.IsSkillSet[Index]
+
+-- 해당 슬롯의 스킬이 Set 되어있는지 확인
+if IsSkillSet then
+	local ItemRef = SkillSlot["ItemRef"]
+	local ItemCount = ItemRef.ItemCount
+
+	if ItemCount > 1 then
+		local ItemName = SkillSlot["Name"]
+		
+		LocalPlayer.ExtendInventoryComponent:RemoveItem(ItemName, 1)
+		LocalPlayer.PlayerAttackComponent:UpgradeSkill(Index)
+		
+		local UpgradeCount = SkillSlot["UpgradeCount"] + 1
+		local UpgradeMaxCount = SkillSlot["UpgradeMaxCount"]
+		local SkillLevel = SkillSlot["SkillLevel"]
+		local SkillCoeff = SkillSlot["SkillCoeff"]
+		local EffectAmount = tonumber(SkillSlot["EffectAmount"])
+		local ItemLevel = ItemRef.ItemLevel
+		
+		local SkillIconEntity = SkillEntity.Children[1]
+		local SkillLevelEntity = SkillIconEntity.Children[1]
+		
+		if UpgradeCount >= UpgradeMaxCount then
+			SkillLevel = SkillLevel + 1
+			UpgradeCount = 0
+			UpgradeMaxCount = UpgradeMaxCount + 3
+			SkillCoeff = SkillCoeff * (1 + ItemLevel/10) * (1 + (SkillLevel - 1)/10)
+			EffectAmount = EffectAmount * (1 + ItemLevel/10) * (1 + (SkillLevel - 1)/10)
+			
+			SkillLevelEntity.TextComponent.Text = math.floor(SkillLevel)
+		end
+		
+		SkillSlot["UpgradeCount"] = UpgradeCount
+		SkillSlot["UpgradeMaxCount"] = UpgradeMaxCount
+		SkillSlot["SkillLevel"] = SkillLevel
+		SkillSlot["SkillCoeff"] = SkillCoeff
+		SkillSlot["EffectAmount"] = tostring(EffectAmount)
+		
+		Entity.TextComponent.Text = "강화하기\n( " .. math.floor(UpgradeCount) .. " / " .. math.floor(UpgradeMaxCount) .. " )"
+		
+		local ItemSlots = _EntityService:GetEntitiesByPath("/ui/SkillUI/SkillInfo/SkillInventory/ItemSlot")
+		
+		-- 아이템 슬롯 갱신
+		for i, ItemSlot in pairs(ItemSlots) do
+			if ItemSlot.SkillInfoButton.ItemName == ItemName then
+				ItemSlot.Children[2].TextComponent.Text = tostring(ItemCount - 1)
+				break;
+			end
+		end
+	end
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

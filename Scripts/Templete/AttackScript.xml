@@ -1,0 +1,114 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="83d2b1ec-526e-449e-95df-d16e985a542a" Language="Lua" Name="AttackScript" Type="Extend" Source="None" Target="MOD.Core.AttackComponent" ModifyTime="2022-01-20T15:40:23.5577518+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="AttackInScript" ExecSpace="ServerOnly">
+      <Return Type="table" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="size" Type="Vector2" SyncDirection="None" />
+        <CodeBlockProperty Name="offset" Type="Vector2" SyncDirection="None" />
+        <CodeBlockProperty Name="attackInfo" Type="string" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+
+
+
+
+
+local attackPosition = Vector2(self.Entity.TransformComponent.WorldPosition.x, self.Entity.TransformComponent.WorldPosition.y)
+attackPosition = attackPosition + offset
+local mapCollision = _CollisionService:GetMapServiceFor(self.Entity)
+local candidates = mapCollision:OverlapBox(self.Entity.HitComponent.ColliderName, attackPosition, size)
+local victimHitComponents  = {}
+
+
+for i, hitComponent in pairs(candidates) do
+	
+	if hitComponent == nil or hitComponent.EnableInHierarchy == false then
+		goto continue
+	end
+	
+	local victim = hitComponent.Entity
+	if victim == nil or victim.EnableInHierarchy == false or self:IsAttackTarget(victim) == false then
+		goto continue
+	end
+
+	local calcDamage = self:CalcDamage(self.Entity, victim, attackInfo)
+	local isCritical = self:CalcCritical(self.Entity, victim, attackInfo)
+	
+	if  isCritical then
+		calcDamage = math.floor(calcDamage * self:GetCriticalDamageRate())
+	end
+
+	self:OnAttack(victim)
+	
+	hitComponent:OnHit(self.Entity, calcDamage, isCritical, attackInfo, self:GetDisplayHitCount(attackInfo))
+	
+	table.insert(victimHitComponents, hitComponent)
+
+	::continue::
+end
+return victimHitComponents
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="AttackLimitTarget" ExecSpace="ServerOnly">
+      <Return Type="table" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="size" Type="Vector2" SyncDirection="None" />
+        <CodeBlockProperty Name="offset" Type="Vector2" SyncDirection="None" />
+        <CodeBlockProperty Name="attackInfo" Type="string" SyncDirection="None" />
+        <CodeBlockProperty Name="limitCount" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local attackPosition = Vector2(self.Entity.TransformComponent.WorldPosition.x, self.Entity.TransformComponent.WorldPosition.y)
+attackPosition = attackPosition + offset
+local mapCollision = _CollisionService:GetMapServiceFor(self.Entity)
+local candidates = mapCollision:OverlapBox(self.Entity.HitComponent.ColliderName, attackPosition, size)
+local hits = 0
+local victimHitComponents  = {}
+for i, hitComponent in pairs(candidates) do
+	if hitComponent == nil or hitComponent.EnableInHierarchy == false then
+		goto continue
+	end
+	local victim = hitComponent.Entity
+	if victim == nil or victim.EnableInHierarchy == false or self:IsAttackTarget(victim) == false then
+		goto continue
+	end
+
+	local calcDamage = self:CalcDamage(self.Entity, victim, attackInfo)
+	local isCritical = self:CalcCritical(self.Entity, victim, attackInfo)
+	if  isCritical then
+		calcDamage = math.floor(calcDamage * self:GetCriticalDamageRate())
+	end
+
+	self:OnAttack(victim)
+	hitComponent:OnHit(self.Entity, calcDamage, isCritical, attackInfo, self:GetDisplayHitCount(attackInfo))
+	table.insert(victimHitComponents, hitComponent)
+	hits = hits + 1
+
+	if hits >= limitCount then
+		return victimHitComponents
+	end
+	::continue::
+end
+return victimHitComponents
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="NormalAttack" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local attackSize = Vector2(1,1)
+local playerController = self.Entity.PlayerControllerComponent
+
+if playerController ~= nil then
+	local attackOffset = Vector2(0.5 * playerController.LookDirectionX, 0.5)
+	self:AttackLimitTarget(attackSize, attackOffset, nil, 3) -- 최대 3 타겟을 공격한다.
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

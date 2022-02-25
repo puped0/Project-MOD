@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="ae16f980-1d49-4e4a-a3a1-374fb5eb3093" Language="Lua" Name="InitRole" Type="Component" Source="None" ModifyTime="2022-02-09T00:13:49.4562253+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="Role" Type="string" DefaultValue="&quot;&quot;" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- DefaultPlayer
+-- 플레이어의 역할을 설정하기 위한 컴포넌트
+-- 역할에 따라 UI가 조금 다름
+-- 디버그를 위한 Log 패널 기능 있음
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetRole" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Role" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 역할 세팅 함수
+local Entity = self.Entity
+
+if Role == "Builder" then
+	self.Role = "Builder"
+	self.Entity:AddComponent("BuilderInput", true)
+	self.Entity.TagComponent:AddTag("builder")
+	self:SetMoneyPanel(true, Entity.Name)
+elseif Role == "Character" then
+	self.Role = "Character"
+	self.Entity:AddComponent("CharacterInput", true)
+	self.Entity.TagComponent:AddTag("character")
+elseif Role == "Hybrid" then
+	self.Role = "Hybrid"
+	self.Entity:AddComponent("HybridInput", true)
+	self.Entity.TagComponent:AddTag("hybrid")
+	self:SetMoneyPanel(true, Entity.Name)
+else
+	log("오류터짐")
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetMoneyPanel" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Enable" Type="boolean" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 건축가용 현재 보유 돈 UI
+local MoneyPanel = _EntityService:GetEntityByPath("/ui/DefaultGroup/Money")
+MoneyPanel:SetVisible(Enable)
+MoneyPanel:SetEnable(Enable)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="AddLog" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="txt" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local log = _EntityService:GetEntityByPath("/ui/DefaultGroup/log")
+log.TextComponent.Text = tostring(log.TextComponent.Text) .. "\n" .. txt
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 테스트용 코드...
+if Environment:IsMakerPlay() and _UtilLogic:IsNilorEmptyString(self.Role) then
+	--self:SetRole("Hybrid")
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleKeyReleaseEvent" EventName="KeyReleaseEvent" Target="service:InputService" Scope="All">
+      <Code><![CDATA[
+-- Parameters
+local key = event.key
+--------------------------------------------------------
+
+-- 디버깅 로그 창 온오프
+if self.Entity ~= _UserService.LocalPlayer then
+	return
+end
+
+if key == KeyboardKey.F2 then
+	local log = _EntityService:GetEntityByPath("/ui/DefaultGroup/log")
+	
+	if log.Visible == false then
+		log:SetVisible(true)
+		log:SetEnable(true)
+	else
+		log:SetVisible(false)
+		log:SetEnable(false)
+	end
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

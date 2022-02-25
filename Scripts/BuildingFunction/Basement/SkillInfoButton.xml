@@ -1,0 +1,166 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="26729e82-7286-4298-b5cb-fb521e95860c" Language="Lua" Name="SkillInfoButton" Type="Component" Source="None" ModifyTime="2022-02-08T17:47:44.6012838+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="ItemName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/SkillUI/SkillInfo/SkillInventory/ItemSlot
+-- Basement 건물 관련 동작
+-- 스킬 업그레이드 기능
+-- 스킬 아이템을 클릭했을 경우 UI 동작과 서버 동작 관련 코드
+-- 스킬 아이템을 클릭하면 스킬 슬롯에 스킬이 장착됨
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="self" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+
+local LocalPlayer = _UserService.LocalPlayer
+local SkillInfoUI = _EntityService:GetEntityByPath("/ui/SkillUI/SkillInfo")
+local CalledBy = SkillInfoUI.SkillUIManager.CalledBy
+
+-- 건물이 부숴졌을 경우 UI 동작이 무효하므로 UI를 강제로 끔
+if not isvalid(CalledBy) then
+	SkillInfoUI:SetVisible(false)
+	SkillInfoUI:SetEnable(false)
+	return
+end
+
+local PlayerPosition = Vector2(LocalPlayer.TransformComponent.Position.x, LocalPlayer.TransformComponent.Position.y)
+local BuildingPosition = Vector2(CalledBy.TransformComponent.Position.x, CalledBy.TransformComponent.Position.y)
+
+-- 건물과 플레이어간 거리가 3 이상이면 UI를 강제로 끔... 건물 근처에서만 업그레이드 하게끔 하기 위함
+if Vector2.Distance(PlayerPosition, BuildingPosition) > 3 then
+	SkillInfoUI.SkillUIManager:SetUI(false)
+	return
+end
+
+local SkillInfos = LocalPlayer.PlayerAttackComponent.SkillInfo
+local SkillSlots = LocalPlayer.PlayerAttackComponent.SkillSlots
+local IsSkillSet = LocalPlayer.PlayerAttackComponent.IsSkillSet
+local Index = 0
+local IsSet = false
+
+-- SkillInfos에 해당 스킬이 Load되지 않았으면 스킬을 DataSet에서 Load
+if SkillInfos[self.ItemName] == nil then
+	LocalPlayer.PlayerAttackComponent:LoadSkillInfo(self.ItemName)
+	
+	SkillInfos[self.ItemName] = {}
+
+	local SkillInfo = SkillInfos[self.ItemName]
+	local Skill_RowData = _DataService:GetTable("Skill"):FindRow("Name", self.ItemName)
+	
+	SkillInfo["Name"] = self.ItemName
+	SkillInfo["RUID"] = Skill_RowData:GetItem("RUID")
+	-- 착용중인 스킬을 팔려는 경우 IsSkillSet과 SkillSlots, ItemRefs를 비교해서 착용중인 스킬은 못팔게 막아야 함
+	SkillInfo["ItemRef"] = LocalPlayer.ExtendInventoryComponent.ItemRefs[self.ItemName]
+	SkillInfo["SoundRUID"] = Skill_RowData:GetItem("SoundRUID")
+	SkillInfo["PlayRate"] = Skill_RowData:GetItem("PlayRate")
+	SkillInfo["SkillCoeff"] = tonumber(Skill_RowData:GetItem("SkillCoeff"))
+	SkillInfo["HitCount"] = tonumber(Skill_RowData:GetItem("HitCount"))
+	SkillInfo["AttackRange"] = Vector2(tonumber(Skill_RowData:GetItem("AttackRange_x")), tonumber(Skill_RowData:GetItem("AttackRange_y")))
+	SkillInfo["AttackOffset"] = Vector2(tonumber(Skill_RowData:GetItem("AttackOffset_x")), tonumber(Skill_RowData:GetItem("AttackOffset_y")))
+	SkillInfo["SkillCooldown"] = tonumber(Skill_RowData:GetItem("SkillCooldown"))
+	SkillInfo["Parent"] = Skill_RowData:GetItem("Parent")
+	SkillInfo["EffectType"] = Skill_RowData:GetItem("EffectType")
+	SkillInfo["EffectAmount"] = tonumber(Skill_RowData:GetItem("EffectAmount"))
+	SkillInfo["SkillLevel"] = 1
+	SkillInfo["UpgradeCount"] = 0
+	SkillInfo["UpgradeMaxCount"] = 5
+end
+
+-- SkillSlot에 해당 스킬이 장착되어 있는지 확인
+for i, SkillSlot in pairs(SkillSlots) do
+	if SkillSlot["Name"] == self.ItemName then
+		IsSet = true
+		break;
+	end
+end
+
+-- 스킬이 장착되어있지 않으면 가장 위에칸에서 부터 스킬을 장착
+-- 스킬을 장착한 슬롯의 Index를 저장하고 조건문 빠져나옴
+if not IsSet then
+	for i, value in pairs(IsSkillSet) do
+		if not value then
+			LocalPlayer.PlayerAttackComponent:SetSkillSlot(i, self.ItemName)
+			
+			SkillSlots[i] = SkillInfos[self.ItemName]
+			IsSkillSet[i] = true
+			Index = i
+			break
+			
+			--[[
+			LocalPlayer.PlayerAttackComponent:SetSkillSlot(i, self.ItemName)
+			
+			local SkillSlot = SkillSlots[i]
+			local SkillInfo = SkillInfos[self.ItemName]
+			
+			SkillSlot["Name"] = SkillInfo["Name"]
+			SkillSlot["RUID"] = SkillInfo["RUID"] 
+			SkillSlot["ItemRef"] = SkillInfo["ItemRef"]
+			SkillSlot["SoundRUID"] = SkillInfo["SoundRUID"]
+			SkillSlot["PlayRate"] = SkillInfo["PlayRate"]
+			SkillSlot["SkillCoeff"] = SkillInfo["SkillCoeff"] 
+			SkillSlot["HitCount"] = SkillInfo["HitCount"]
+			SkillSlot["AttackRange"] = SkillInfo["AttackRange"]
+			SkillSlot["AttackOffset"] = SkillInfo["AttackOffset"]
+			SkillSlot["SkillCooldown"] = SkillInfo["SkillCooldown"]
+			SkillSlot["Parent"] = SkillInfo["SkillCooldown"]
+			SkillSlot["SkillLevel"] = SkillInfo["SkillLevel"]
+			SkillSlot["UpgradeCount"] = SkillInfo["UpgradeCount"]
+			SkillSlot["UpgradeMaxCount"] = SkillInfo["UpgradeMaxCount"]
+			
+			IsSkillSet[i] = true
+			Index = i
+			break
+			]]
+		end
+	end
+	
+	-- Index가 0이 아니라는 것은 Index번째 스킬 슬롯에 스킬을 장착했다는 뜻
+	-- Index가 0이라는 것은 스킬슬롯이 없어 스킬을 장착하지 못했다는 뜻
+	if Index ~= 0 then
+		local SkillSlot = SkillSlots[Index] -- 스킬 슬롯 1~4에서 Index에 해당하는 스킬 정보를 읽어옴
+		local SkillSlotEntity = _EntityService:GetEntityByPath("/ui/SkillUI/SkillInfo/SkillSets/SkillSlot_" .. tostring(Index))
+		local Skill = SkillSlotEntity.Children[1]
+		local SkillIcon = Skill.Children[1]
+		local SkillLevel = SkillIcon.Children[1]
+		local Upgrade = Skill.Children[2]
+		
+		SkillIcon.SpriteGUIRendererComponent.ImageRUID = SkillSlot["ItemRef"].IconRUID
+		SkillLevel.TextComponent.Text = tostring(SkillSlot["SkillLevel"])
+		Upgrade.TextComponent.Text = "강화하기\n( " .. math.floor(SkillSlot["UpgradeCount"]) .. " / " .. math.floor(SkillSlot["UpgradeMaxCount"]) .. " )"
+		
+		Skill:SetVisible(true)
+		Skill:SetEnable(true)
+		
+		--- 모바일 UI 세팅 ---
+		if Environment:IsMobilePlatform() then
+			local MobileSkillSlot = _EntityService:GetEntityByPath("/ui/DefaultGroup/MobileUI/SkillQuickSlot/SkillSlots/SkillSlot_" .. tostring(Index))
+			local MobileSkillIcon = MobileSkillSlot.Children[1]
+			MobileSkillIcon.SpriteGUIRendererComponent.ImageRUID = SkillSlot["ItemRef"].IconRUID
+			MobileSkillIcon.SpriteGUIRendererComponent.Color.a = 1
+		--- PC UI 세팅 ---
+		else
+			local PCSkillSlotIcon = _EntityService:GetEntityByPath("/ui/DefaultGroup/SkillCooldownInfo/Skill_" .. tostring(Index))
+			PCSkillSlotIcon.SpriteGUIRendererComponent.ImageRUID = SkillSlot["ItemRef"].IconRUID
+			PCSkillSlotIcon:SetVisible(true)
+			PCSkillSlotIcon:SetEnable(true)
+		end
+	end
+end
+
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

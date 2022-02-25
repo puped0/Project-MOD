@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="6bab295d-d7f2-4497-8046-38e59d42a068" Language="Lua" Name="InitBuildingHpBarForeground" Type="Component" Source="None" ModifyTime="2022-02-08T00:46:43.1341994+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 건물 체력 관련 모델인 BuildingHpBarForeground 모델에서 사용하는 컴포넌트
+-- 현재 건물 체력을 체력바 형태로 표시
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local MaxHp = 0
+local Hp = 0
+local Building = self.Entity.Parent.Parent
+
+wait(0.1)
+if Building.TagComponent.Tags:Contains("building") then
+	MaxHp = Building.Building.BuildingInfo["MaxHp"]
+	Hp = Building.Building.Hp
+elseif Building.TagComponent.Tags:Contains("monsterbuilding") then
+	MaxHp = Building.MonsterBuilding.MaxHp
+	Hp = Building.MonsterBuilding.Hp
+end
+
+self:SetHpBarSize(MaxHp, Hp)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetHpBarSize" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="MaxHp" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="Hp" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+self.Entity.UITransformComponent.RectSize.x = 200 * (Hp / MaxHp)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

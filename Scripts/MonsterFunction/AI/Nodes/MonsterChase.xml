@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="4205e2d3-6312-4e7d-baf5-b7aa366aade2" Language="Lua" Name="MonsterChase" Type="BTNodeType" Source="None" ModifyTime="2022-02-08T02:02:45.8073461+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="PrevChaseTime" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="ChaseRange" Type="Vector2" DefaultValue="Vector2(2,1)" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 몬스터의 추적 AI ... 플레이어, 유닛, 건물 추적
+
+if self.ParentAI.time >= self.ParentAI.tick then
+	local MonsterEntity = self.ParentAI.Entity
+	local MonsterAIComp = MonsterEntity.MonsterAIComponent
+	local MonsterPosition = Vector2(MonsterEntity.TransformComponent.Position.x, MonsterEntity.TransformComponent.Position.y)
+	
+	if not isvalid(MonsterAIComp.TargetEntity) then
+		-- 타겟이 무효하면 재탐색
+		local CurrentChaseTime = _UtilLogic.ElapsedSeconds
+		
+		if CurrentChaseTime > self.PrevChaseTime + 2 then
+			self.PrevChaseTime = CurrentChaseTime
+			
+			local MonsterSize = MonsterEntity.HitComponent.BoxSize
+			local ChaseRange = MonsterSize + self.ChaseRange*2
+			
+			local HitComponents = _CollisionService:GetMapServiceFor(MonsterEntity):OverlapBox("HitBox", MonsterPosition, ChaseRange)
+			
+			if HitComponents.Count <= 1 then
+				return BehaviourTreeStatus.Failure
+			end
+			
+			for i, value in pairs(HitComponents) do
+				if value.Entity.TagComponent ~= nil and value.Entity.TagComponent.Tags:Contains("friendly") then
+					MonsterAIComp.TargetEntity = value.Entity
+					return BehaviourTreeStatus.Success
+				end
+			end
+		end
+	else
+		-- 타겟이 유효하면 타겟 위치로 이동
+		self.ParentAI.time = 0
+		
+		local MonsterSize = MonsterEntity.HitComponent.BoxSize
+		local TargetBoxSize = MonsterAIComp.TargetEntity.HitComponent.BoxSize
+		local TargetBoxOffset = MonsterAIComp.TargetEntity.HitComponent.BoxOffset
+		local TargetPosition = MonsterAIComp.TargetEntity.TransformComponent.Position 
+		MonsterEntity.StateComponent:ChangeState("MOVE")
+		
+		-- 타겟이 추적 범위 밖에 있으면 추적 중지하고 목적지로 이동
+		if TargetPosition.x < (MonsterPosition.x - MonsterSize.x/2 - self.ChaseRange.x) 
+			or TargetPosition.x > (MonsterPosition.x + MonsterSize.x/2 + self.ChaseRange.x) then
+			MonsterAIComp.TargetEntity = nil
+		else
+			-- 유닛 Chase 코드랑 다른 이유...
+			-- 유닛은 목적지 좌표가 바뀌어도 상관 없지만
+			-- 몬스터는 목적지 좌표가 맵 중심 Basement로 고정되어야 하기 때문에
+			-- Destination을 수정하는 방법을 사용할 수 없음
+			MonsterEntity.SpriteRendererComponent.FlipX = (TargetPosition.x > MonsterPosition.x)
+			
+			MonsterEntity.MovementComponent:MoveToDirection(Vector2(TargetPosition.x - MonsterPosition.x, 0), 0)
+			return BehaviourTreeStatus.Success
+		end
+	end
+end
+
+return BehaviourTreeStatus.Failure
+
+--[[
+-- 참고용 구버전
+local MonsterEntity = self.ParentAI.Entity
+local CurrentChaseTime = _UtilLogic.ElapsedSeconds
+
+if self.ParentAI.time >= self.ParentAI.tick and CurrentChaseTime > self.PrevChaseTime + 2 and isvalid(self.TargetEntity) then
+	local MonsterSize = MonsterEntity.HitComponent.BoxSize
+	local MonsterPosition = Vector2(MonsterEntity.TransformComponent.Position.x, MonsterEntity.TransformComponent.Position.y)
+	local ChaseRange = MonsterSize + Vector2(2, 2)
+	
+	local HitComponents = _CollisionService:GetMapServiceFor(MonsterEntity):OverlapBox("HitBox", MonsterPosition, ChaseRange)
+	
+	if HitComponents.Count <= 1 then
+		return BehaviourTreeStatus.Failure
+	end
+	
+	for i, value in pairs(HitComponents) do
+		if value.Entity.TagComponent ~= nil and value.Entity.TagComponent.Tags:Contains("friendly") then
+			self.TargetEntity = value.Entity
+			break
+		end
+	end
+	
+	if isvalid(self.TargetEntity) then
+		self.ParentAI.time = 0
+		self.PrevChaseTime = CurrentChaseTime
+				
+		local TargetPosition = TargetEntity.TransformComponent.Position
+		MonsterEntity.StateComponent:ChangeState("MOVE")
+		
+		--log("Chase")
+		
+		if MonsterPosition.x > TargetPosition.x then
+			MonsterEntity.MovementComponent:MoveToDirection(Vector2(-1, 0), 0.1)
+			MonsterEntity.SpriteRendererComponent.FlipX = false
+		else
+			MonsterEntity.MovementComponent:MoveToDirection(Vector2(1, 0), 0.1)
+			MonsterEntity.SpriteRendererComponent.FlipX = true
+		end
+		
+		return BehaviourTreeStatus.Success
+	end
+end
+
+return BehaviourTreeStatus.Failure
+]]
+
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

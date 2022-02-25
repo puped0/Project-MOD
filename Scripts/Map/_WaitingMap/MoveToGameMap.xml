@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="e900a685-dc61-4b89-9561-3db02b0d433a" Language="Lua" Name="MoveToGameMap" Type="Component" Source="None" ModifyTime="2022-02-08T01:34:06.7337953+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="IsPCPlatform" Type="dictionary" DefaultValue="string|boolean" SyncDirection="None" />
+    <CodeBlockProperty Name="IsBuilderSet" Type="boolean" DefaultValue="false" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /maps/_WaitingMap
+-- 게임 맵에 들어가기 전에 플레이어들의 역할을 설정하기 위한 컴포넌트
+-- _WaitMap에서 역할 설정 후 GameMap으로 텔레포트
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 15초 후에 게임 맵으로 텔레포트 함
+-- 15초 안에 모든 유저라 로딩되어야 함...
+_TimerService:SetTimerOnce(self.MoveToGameMap, 15)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="MoveToGameMap" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 텔레포트 직전에 플레이어들의 역할을 설정하고 게임 맵으로 텔레포트
+-- 플레이어의 게임 환경에 따라 역할을 달리 정함
+
+local Users = _UserService.UserEntities
+local Path = "/maps/GameMap/SpawnLocation"
+
+if Users.Count == 1 then
+	for Name, Entity in pairs(Users) do
+		Entity.InitRole:SetRole("Hybrid")
+	end
+else
+	for Name, User in pairs(Users) do
+		self:GetPlatform(User.Name)
+		wait(0.1)
+	end
+	
+	for Name, User in pairs(Users) do
+		if self.IsPCPlatform[User.Name] == true and self.IsBuilderSet == false then
+			User.InitRole:SetRole("Builder")
+			self.IsBuilderSet = true
+		else
+			User.InitRole:SetRole("Character")
+		end
+	end
+end
+
+for Name, User in pairs(Users) do
+	_TeleportService:TeleportToEntityPath(User, Path)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="GetPlatform" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 플레이어의 게임 환경을 받아옴
+local LocalPlayer = _UserService.LocalPlayer
+self:SetPlatform(LocalPlayer.Name, Environment:IsPCPlatform())
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetPlatform" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Name" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="IsPC" Type="boolean" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 플레이어의 게임 환경 저장
+self.IsPCPlatform[Name] = IsPC
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

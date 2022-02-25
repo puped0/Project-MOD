@@ -1,0 +1,113 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="483b0dde-5b7a-4c1d-95dc-ff6ca90d5495" Language="Lua" Name="MonsterAIComponent" Type="Extend" Source="None" Target="MOD.Core.AIComponent" ModifyTime="2022-02-08T01:49:32.6619398+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="time" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="tick" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="Source" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="Destination" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="Range" Type="number" DefaultValue="1.5" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackTimerId" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackEffectTimerId" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="TargetEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+    <CodeBlockProperty Name="Root" Type="any" DefaultValue="nil" SyncDirection="None" />
+    <CodeBlockProperty Name="Seq1" Type="any" DefaultValue="nil" SyncDirection="None" />
+    <CodeBlockProperty Name="Sel1" Type="any" DefaultValue="nil" SyncDirection="None" />
+    <CodeBlockProperty Name="IsActivated" Type="boolean" DefaultValue="false" SyncDirection="None" />
+    <CodeBlockProperty Name="CanClimb" Type="boolean" DefaultValue="false" SyncDirection="None" />
+    <CodeBlockProperty Name="LadderEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 모든 Monster 모델에서 사용하는 컴포넌트
+-- Monster AI 노드 연결
+-- Climb 관련 사다리 감지
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+local Position = Entity.TransformComponent.Position
+self.Destination = Vector2(4, -1.5)
+
+-- 0.5초마다 동작 결정
+self.tick = 0.5
+self.TargetEntity = nil
+
+local AttackType = Entity.Monster.AttackType
+
+local Root = SequenceNode()
+local Seq1 = SequenceNode()
+local Sel1 = SelectorNode()
+
+local MonsterTimer = MonsterTimer()
+local MonsterMove = MonsterMove()
+local MonsterClimb = MonsterClimb()
+local MonsterChase = MonsterChase()
+local MonsterAttack = nil
+
+if AttackType == "Normal" then
+	MonsterAttack = MonsterNormalAttack()
+elseif AttackType == "Body" then
+	MonsterAttack = MonsterBodyAttack()
+end
+
+Root:AttachChild(Seq1)
+
+Seq1:AttachChild(MonsterTimer)
+Seq1:AttachChild(Sel1)
+
+Sel1:AttachChild(MonsterClimb)
+Sel1:AttachChild(MonsterAttack)
+Sel1:AttachChild(MonsterChase)
+Sel1:AttachChild(MonsterMove)
+
+Entity.AIComponent:SetRootNode(Root)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnUpdate" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+--[[
+if self._T.time == nil then self._T.time = 0 end
+
+if self._T.time >= 10 then
+	self._T.time = 0
+	--log(self.Entity.HitComponent.BoxOffset)
+	--log(self.Entity.HitComponent.BoxSize)
+end
+
+self._T.time = self._T.time + delta
+]]
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleTriggerEnterEvent" EventName="TriggerEnterEvent" Target="self" Scope="All">
+      <Code><![CDATA[
+-- Parameters
+local TriggerBodyEntity = event.TriggerBodyEntity
+--------------------------------------------------------
+
+if TriggerBodyEntity.ClimbableComponent ~= nil then
+	local LadderPosition = TriggerBodyEntity.TransformComponent.Position
+	local MonsterPosition = self.Entity.TransformComponent.Position
+	
+	if (self.Destination.y > LadderPosition.y and LadderPosition.y > MonsterPosition.y)
+		or (self.Destination.y < LadderPosition.y and LadderPosition.y < MonsterPosition.y) then
+		self.LadderEntity = TriggerBodyEntity
+		self.CanClimb = true
+	end
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

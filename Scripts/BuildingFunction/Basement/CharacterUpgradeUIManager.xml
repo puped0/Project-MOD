@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="067ccfc0-7488-4f20-bf00-7eefea8e3033" Language="Lua" Name="CharacterUpgradeUIManager" Type="Component" Source="None" ModifyTime="2022-02-08T00:19:56.5546349+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="CalledBy" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/CharacterUpgradeUI/CharacterUpgradeInfo
+-- UI 온오프 관련 컴포넌트
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetUI" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Enable" Type="boolean" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local BuildingEntity = self.Entity
+
+if Enable == true then
+	self.CalledBy.Building:IncreaseUsingCount()
+else
+	self.CalledBy.Building:DecreaseUsingCount()
+end
+
+BuildingEntity:SetVisible(Enable)
+BuildingEntity:SetEnable(Enable)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="entity:99303327-d66c-4f94-bdc2-269512207dd8" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+
+if isvalid(self.CalledBy) then
+	self:SetUI(false)
+else
+	local CharacterUpgradeInfo = _EntityService:GetEntityByPath("/ui/CharacterUpgradeUI/CharacterUpgradeInfo")
+	
+	CharacterUpgradeInfo:SetVisible(false)
+	CharacterUpgradeInfo:SetEnable(false)
+end
+
+self.CalledBy = nil
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

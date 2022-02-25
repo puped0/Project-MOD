@@ -1,0 +1,91 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="277d811a-3dbb-4a7c-883a-65d75c5c91f8" Language="Lua" Name="GameStartPanelUI" Type="Component" Source="None" ModifyTime="2022-02-08T01:30:09.6889201+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/GameStartUI/GameStartPanel
+-- 게임 매치 UI에서 각 버튼 동작 관련 코드
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 각 버튼 세팅
+
+local Entity = self.Entity
+
+local SoloPlayButton = Entity:GetChildByName("SoloPlay")
+local MultiPlayButton = Entity:GetChildByName("MultiPlay")
+local BuilderTutorialButton = Entity:GetChildByName("BuilderTutorial")
+local CharacterTutorialButton = Entity:GetChildByName("CharacterTutorial")
+
+SoloPlayButton:ConnectEvent(ButtonClickEvent, self.SoloPlay)
+MultiPlayButton:ConnectEvent(ButtonClickEvent, self.MultiPlay)
+BuilderTutorialButton:ConnectEvent(ButtonClickEvent, self.BuilderTutorial)
+CharacterTutorialButton:ConnectEvent(ButtonClickEvent, self.CharacterTutorial)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SoloPlay" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+if Environment:IsPCPlatform() then
+	if self.Entity.Visible == true then
+		self.Entity:SetVisible(false)
+		self.Entity:SetEnable(false)
+	end
+	
+	local LobbyMap = _EntityService:GetEntityByPath("/maps/Lobby")
+	LobbyMap.GameMatchManager:StartSoloGame(_UserService.LocalPlayer)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="MultiPlay" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+local LocalPlayer = _UserService.LocalPlayer
+local GameMatchManager = LocalPlayer.CurrentMap.GameMatchManager
+
+local GameMatchingPanel = _EntityService:GetEntityByPath("/ui/GameMatchingUI/GameMatchingPanel")
+
+Entity:SetVisible(false)
+Entity:SetEnable(false)
+
+-- 현재 PC환경과 플레이어 정보를 넘기고 매칭 대기열에 플레이어를 넣음
+GameMatchManager:MultiGameMatchStart(LocalPlayer.Name, LocalPlayer, Environment:IsPCPlatform())
+GameMatchingPanel.GameMatchingPanelUI:MatchingStartPanelOn()
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="BuilderTutorial" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+--log("BuilderTutorial")
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="CharacterTutorial" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+--log("CharacterTutorial")
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="entity:336bb444-681f-4141-9bf4-fb0fcb3405d5" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+
+local GameStartPanel = Entity.Parent
+
+GameStartPanel:SetVisible(false)
+GameStartPanel:SetEnable(false)
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

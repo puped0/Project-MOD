@@ -1,0 +1,341 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="46ab8857-d6d3-44bf-8359-d632c8b0b478" Language="Lua" Name="MonsterBuilding" Type="Component" Source="None" ModifyTime="2022-02-08T17:12:53.1329375+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="ProductionSpeed" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="MaxHp" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="Hp" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="Defence" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="Types" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="MonsterName" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="MonsterModelID" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="MonsterSpawnCount" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="MonsterProductionTime" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="MonsterSpawnTimer" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="Destination" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="Level" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="IsSpawnSet" Type="boolean" DefaultValue="false" SyncDirection="None" />
+    <CodeBlockProperty Name="Attack" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackEffectRUID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackSoundRUID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackRange" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackOffset" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="AttackCooldown" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="HitSoundRUID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="All" />
+    <CodeBlockProperty Name="DestroySoundRUID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 모든 몬스터 건물에서 사용하는 컴포넌트
+-- 몬스터 건물 정보 저장 및 관리
+-- 파괴, 피격, 데미지 계산, 몬스터 생성 타이머 관리, 플레이어 보상 관리
+-- 건물 관련 엔티티 생성(체력바)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+local Name = _UtilLogic:Split(Entity.Name, "_")[1]
+local RowData = _DataService:GetTable("MonsterBuilding"):FindRow("Name", Name)
+
+local SpawnCount = RowData:GetItem("SpawnCount") 
+self.Level = tonumber(RowData:GetItem("Level"))
+self.ProductionSpeed = tonumber(RowData:GetItem("ProductionSpeed"))
+self.MaxHp = tonumber(RowData:GetItem("MaxHp"))
+self.Defence = tonumber(RowData:GetItem("Defence"))
+self.Types = tonumber(RowData:GetItem("Types"))
+self.HitSoundRUID = RowData:GetItem("HitSoundRUID")
+self.DestroySoundRUID = RowData:GetItem("DestroySoundRUID")
+
+self.Attack = tonumber(RowData:GetItem("Attack"))
+self.AttackEffectRUID = RowData:GetItem("AttackEffectRUID")
+self.AttackSoundRUID = RowData:GetItem("AttackSoundRUID")
+self.AttackRange = Vector2(tonumber(RowData:GetItem("AttackRange_x")), tonumber(RowData:GetItem("AttackRange_y")))
+self.AttackOffset = Vector2(tonumber(RowData:GetItem("AttackOffset_x")), tonumber(RowData:GetItem("AttackOffset_y")))
+self.AttackCooldown = tonumber(RowData:GetItem("AttackCooldown"))
+
+-- 생성될 몬스터의 목적지 저장
+self.Destination = Vector2(4, -1.5)
+self.Hp = self.MaxHp
+
+-- 스폰할 몬스터 정보 읽음
+for i=1, self.Types do
+	local MonsterName = RowData:GetItem(tostring(i))
+	local MonsterData = _DataService:GetTable("Monster"):FindRow("Name", MonsterName)
+	self.MonsterName[i] = MonsterName
+	self.MonsterModelID[i] = MonsterData:GetItem("ModelID")
+	self.MonsterSpawnCount[i] = tonumber(string.sub(SpawnCount, i, i))
+	self.MonsterProductionTime[i] = tonumber(MonsterData:GetItem("ProductionTime"))
+	self.MonsterSpawnTimer[i] = 0
+end
+
+-- 서버에 이 몬스터 건물 정보를 등록
+local Common = _EntityService:GetEntityByPath("/common")
+Common.Common:AddMonsterBuilding(self.Level, self.Entity)
+
+-- 체력바 생성
+local HpBarBackgroundModelID = "model://ce410025-08d3-4748-b9e2-f841bb6983b0"
+_SpawnService:SpawnByModelId(HpBarBackgroundModelID, "BuildingHpBarBackground", Vector3.zero, Entity, nil)
+
+-- 1 레벨 건물만 스폰 설정
+if self.Level == 1 then
+	self:SetMonsterSpawnTimer()
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SpawnMonster" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="index" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+return function()
+	local Name = self.MonsterName[index]
+	local ModelID = self.MonsterModelID[index]
+	local SpawnCount = self.MonsterSpawnCount[index]
+	local Position = self.Entity.TransformComponent.Position
+	local Parent = self.Entity.CurrentMap
+	
+	for i=1, SpawnCount do
+		local RandomPos = Vector3((_UtilLogic:RandomDouble() - 0.5) * 2, 0, 0)
+		local Monster = _SpawnService:SpawnByModelId(ModelID, Name, Position+RandomPos, Parent, nil)
+		Monster.MonsterAIComponent.Destination = self.Destination
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SpawnMonster1" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+local Name = self.MonsterName[1]
+local ModelID = self.MonsterModelID[1]
+local SpawnCount = self.MonsterSpawnCount[1]
+local Position = self.Entity.TransformComponent.Position
+local Parent = self.Entity.CurrentMap
+
+for i=1, SpawnCount do
+	local RandomPos = Vector3((_UtilLogic:RandomDouble() - 0.5) * 2, 0, 0)
+	local Monster = _SpawnService:SpawnByModelId(ModelID, Name, Position+RandomPos, Parent, nil)
+	Monster.MonsterAIComponent.Destination = self.Destination
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SpawnMonster2" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Name = self.MonsterName[2]
+local ModelID = self.MonsterModelID[2]
+local SpawnCount = self.MonsterSpawnCount[2]
+local Position = self.Entity.TransformComponent.Position
+local RandomPos = Vector3((_UtilLogic:RandomDouble() - 0.5) * 2, 0, 0)
+local Parent = self.Entity.CurrentMap
+
+for i=1, SpawnCount do
+	local RandomPos = Vector3((_UtilLogic:RandomDouble() - 0.5) * 2, 0, 0)
+	local Monster = _SpawnService:SpawnByModelId(ModelID, Name, Position+RandomPos, Parent, nil)
+	Monster.MonsterAIComponent.Destination = self.Destination
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SpawnMonster3" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Name = self.MonsterName[3]
+local ModelID = self.MonsterModelID[3]
+local SpawnCount = self.MonsterSpawnCount[3]
+local Position = self.Entity.TransformComponent.Position
+local RandomPos = Vector3((_UtilLogic:RandomDouble() - 0.5) * 2, 0, 0)
+local Parent = self.Entity.CurrentMap
+
+for i=1, SpawnCount do
+	local RandomPos = Vector3((_UtilLogic:RandomDouble() - 0.5) * 2, 0, 0)
+	local Monster = _SpawnService:SpawnByModelId(ModelID, Name, Position+RandomPos, Parent, nil)
+	Monster.MonsterAIComponent.Destination = self.Destination
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SpawnMonster4" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Name = self.MonsterName[4]
+local ModelID = self.MonsterModelID[4]
+local SpawnCount = self.MonsterSpawnCount[4]
+local Position = self.Entity.TransformComponent.Position
+local RandomPos = Vector3((_UtilLogic:RandomDouble() - 0.5) * 2, 0, 0)
+local Parent = self.Entity.CurrentMap
+
+for i=1, SpawnCount do
+	local RandomPos = Vector3((_UtilLogic:RandomDouble() - 0.5) * 2, 0, 0)
+	local Monster = _SpawnService:SpawnByModelId(ModelID, Name, Position+RandomPos, Parent, nil)
+	Monster.MonsterAIComponent.Destination = self.Destination
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SpawnMonster5" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Name = self.MonsterName[5]
+local ModelID = self.MonsterModelID[5]
+local SpawnCount = self.MonsterSpawnCount[5]
+local Position = self.Entity.TransformComponent.Position
+local RandomPos = Vector3((_UtilLogic:RandomDouble() - 0.5) * 2, 0, 0)
+local Parent = self.Entity.CurrentMap
+
+for i=1, SpawnCount do
+	local RandomPos = Vector3((_UtilLogic:RandomDouble() - 0.5) * 2, 0, 0)
+	local Monster = _SpawnService:SpawnByModelId(ModelID, Name, Position+RandomPos, Parent, nil)
+	Monster.MonsterAIComponent.Destination = self.Destination
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SpawnMonster6" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Name = self.MonsterName[6]
+local ModelID = self.MonsterModelID[6]
+local SpawnCount = self.MonsterSpawnCount[6]
+local Position = self.Entity.TransformComponent.Position
+local RandomPos = Vector3((_UtilLogic:RandomDouble() - 0.5) * 2, 0, 0)
+local Parent = self.Entity.CurrentMap
+
+for i=1, SpawnCount do
+	local RandomPos = Vector3((_UtilLogic:RandomDouble() - 0.5) * 2, 0, 0)
+	local Monster = _SpawnService:SpawnByModelId(ModelID, Name, Position+RandomPos, Parent, nil)
+	Monster.MonsterAIComponent.Destination = self.Destination
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Destroy" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+local Common = _EntityService:GetEntityByPath("/common")
+
+for i=1, self.Types do
+	-- 몬스터 스폰 타이머 삭제
+	_TimerService:ClearTimer(self.MonsterSpawnTimer[i])
+end
+
+local Users = _UserService.UserEntities
+for Name, User in pairs(Users) do
+	-- 건물 파괴 점수 저장
+	User.ExtendPlayerComponent:AddKillOrDestroyCount("MonsterBuilding", self.Level)
+end
+
+-- 몬스터 건물 정보 삭제
+Common.Common:RemoveMonsterBuilding(self.Level, Entity)
+
+self:_DestroySoundPlay()
+Entity:Destroy()
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="Hit" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="AttackerEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Entity = self.Entity
+Entity:GetChildByName("BuildingHpBarText", true).BuildingHpBarTextComponent:SetHp(self.Hp, self.MaxHp)
+
+self:_HitSoundPlay(AttackerEntity.Name)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="CalcDmg" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="damage" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+self.Hp = self.Hp - damage
+
+if self.Hp > self.MaxHp then
+	self.Hp = self.MaxHp
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetMonsterSpawnTimer" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+for i, time in pairs(self.MonsterProductionTime) do
+	--local RandomDelay = _UtilLogic:RandomIntegerRange(120, 180)
+	local RandomDelay = _UtilLogic:RandomIntegerRange(15, 45)
+	--local RandomDelay = _UtilLogic:RandomIntegerRange(0, 15)
+	self.MonsterSpawnTimer[i] = _TimerService:SetTimerRepeat(self:SpawnMonster(i), time / self.ProductionSpeed, RandomDelay)
+end
+
+self.IsSpawnSet = true
+
+--log("Set Spawn MonsterBuilding : " .. self.Entity.Name)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="GiveMoney" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+local CommonComp = _EntityService:GetEntityByPath("/common").Common
+local Players = _UserService.UserEntities
+local Money = 5000 * self.Level
+
+for Name, Player in pairs(Players) do
+	local Role = Player.InitRole.Role
+	if Role == "Builder" then
+		CommonComp:EarnMoney(Money)
+	elseif Role == "Character" then
+		Player.CharacterInput:EarnMoney(Money)
+	elseif Role == "Hybrid" then
+		CommonComp:EarnMoney(Money)
+		Player.HybridInput:EarnMoney(Money)
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="_HitSoundPlay" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+_SoundService:PlaySoundAtPos(self.HitSoundRUID, Entity.TransformComponent.Position, Entity, 1)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="_DestroySoundPlay" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Entity = self.Entity
+_SoundService:PlaySoundAtPos(self.DestroySoundRUID, Entity.TransformComponent.Position, Entity, 1)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleHitEvent" EventName="HitEvent" Target="self" Scope="All">
+      <Code><![CDATA[
+-- Parameters
+local AttackCenter = event.AttackCenter
+local AttackerEntity = event.AttackerEntity
+local Damages = event.Damages
+local Extra = event.Extra
+local FeedbackAction = event.FeedbackAction
+local IsCritical = event.IsCritical
+local TotalDamage = event.TotalDamage
+--------------------------------------------------------
+
+local Entity = self.Entity
+
+local originalHp = self.Hp
+self:CalcDmg(TotalDamage)
+
+if self.Hp <= 0 then
+	self:GiveMoney()
+	self:Destroy()
+else
+	self:Hit(AttackerEntity)
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

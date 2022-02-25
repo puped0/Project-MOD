@@ -1,0 +1,133 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="b1878a6d-fa6b-4201-a29e-1af4b0947721" Language="Lua" Name="ExtendInventoryComponent" Type="Extend" Source="None" Target="MOD.Core.InventoryComponent" ModifyTime="2022-02-08T02:47:38.1161963+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="ItemRefs" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="SyncItemNameForAdd" Type="string" DefaultValue="&quot;&quot;" SyncDirection="All" />
+    <CodeBlockProperty Name="SyncGUID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- DefaultPlayer
+-- 인벤토리 관리(인벤토리 초기화, 아이템 목록 관리, 아이템 획득/소모)
+-- 아이템 획득 시 ItemRef가 제대로 동기화 안될수 있음
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+while not self.IsInitialized do
+	wait(0.1)
+end
+
+local Entity = self.Entity
+local Items = self:GetItemList()
+
+for i, Item in pairs(Items) do
+	_ItemService:RemoveItem(Item)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="GetItem" ExecSpace="Server">
+      <Return Type="void" DefaultValue="" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="ItemName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="ItemType" Type="any" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Item = self.ItemRefs[ItemName]
+
+if Item == nil then
+
+	self.ItemRefs[ItemName] = _ItemService:CreateItem(ItemType, ItemName, self)
+	--self.SyncGUID = self.ItemRefs[ItemName].GUID
+	--self.SyncItemNameForAdd = ItemName
+	self:SyncItemRefs(ItemName, self.ItemRefs[ItemName].GUID)
+else
+	if Item.ItemCount < tonumber(Item.ItemTableData:GetItem("MaxStackCount")) then
+		Item.ItemCount = Item.ItemCount + 1
+	else
+		--log("아이템을 더 이상 얻을 수 없습니다")
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="RemoveItem" ExecSpace="Server">
+      <Return Type="boolean" DefaultValue="false" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="ItemName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="Amount" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Item = self.ItemRefs[ItemName]
+
+if Item ~= nil then
+	if Item.ItemCount > Amount then
+		Item.ItemCount = Item.ItemCount - Amount
+	else
+		--log("아이템이 부족합니다.")
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SyncItemRefs" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="ItemName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="GUID" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+wait(0.2)
+
+-- ItemRef가 제대로 동기화 되지 않는 문제 있음
+-- => 서버에서 클라이언트로 GetItemList가 확실히 동기화 되지 않음(타이밍 이슈)
+-- 이벤트 기반으로 수정해야함 => 이벤트 기반도 안전하지 않음
+if GUID ~= "" then
+	local Items = self:GetItemList()
+	
+	for i, Item in pairs(Items) do
+		if Item.GUID == GUID then
+			self.ItemRefs[ItemName] = Item
+			break
+		end
+	end
+else
+	self.ItemRefs[ItemName] = nil
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleInventoryItemAddedEvent" EventName="InventoryItemAddedEvent" Target="self" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+local Items = event.Items
+--------------------------------------------------------
+-- 동시에 새로운 아이템을 두개 이상 획득했을 때 아이템 하나가 씹힘
+
+while self.SyncItemNameForAdd == "" or self.SyncGUID == "" do
+	wait(0.1)
+end
+
+local ItemName = self.SyncItemNameForAdd
+local GUID = self.SyncGUID
+
+for i, Item in pairs(Items) do
+	if Item.GUID == GUID then
+		self.ItemRefs[ItemName] = Item
+		break
+	end
+end
+
+self.SyncItemNameForAdd = ""
+self.SyncGUID = ""
+
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

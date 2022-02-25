@@ -1,0 +1,426 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="c242ca81-ddbd-42c2-a826-0eedb12537ca" Language="Lua" Name="PlayerAttackComponent" Type="Extend" Source="None" Target="MOD.Core.AttackComponent" ModifyTime="2022-02-08T20:10:27.2479264+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="SkillInfo" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="SkillSlots" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="IsSkillSet" Type="table" DefaultValue="{}" SyncDirection="None" />
+    <CodeBlockProperty Name="PrevAttackTime" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="PrevSkillTime" Type="dictionary" DefaultValue="number|number" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- DefaultPlayer
+-- 플레이어 일반공격/스킬공격 관련 코드
+-- 플레이어의 스킬 슬롯에 장착된 스킬을 발동시킴
+-- 공격력, 공격속도, 크리티컬 확률, 크리티컬 데미지를 고려하여 데미지 계산
+-- 스킬 쿨타임 UI 제어
+-- 플레이어 입력에 따른 스킬 사용
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 스킬 슬롯 초기화
+
+self.IsSkillSet[1] = false
+self.IsSkillSet[2] = false
+self.IsSkillSet[3] = false
+self.IsSkillSet[4] = false
+	
+--self.SkillSlots[1] = {}
+--self.SkillSlots[2] = {}
+--self.SkillSlots[3] = {}
+--self.SkillSlots[4] = {}
+
+self.SkillSlots[1] = nil
+self.SkillSlots[2] = nil
+self.SkillSlots[3] = nil
+self.SkillSlots[4] = nil
+
+if self:IsClient() then
+	-- Action 등록
+	self.Entity.PlayerControllerComponent:SetActionKey(KeyboardKey.Z, "Skill_1")
+	self.Entity.PlayerControllerComponent:SetActionKey(KeyboardKey.X, "Skill_2")
+	self.Entity.PlayerControllerComponent:SetActionKey(KeyboardKey.C, "Skill_3")
+	self.Entity.PlayerControllerComponent:SetActionKey(KeyboardKey.V, "Skill_4")
+else
+	self.PrevSkillTime[1] = 0
+	self.PrevSkillTime[2] = 0
+	self.PrevSkillTime[3] = 0
+	self.PrevSkillTime[4] = 0
+
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="NormalAttack" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="attackInfo" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 일반공격과 스킬공격 관련 코드
+
+local Entity = self.Entity
+local attackSize = Vector2.zero
+local attackOffset = Vector2.zero
+local LookDirectionX = Entity.PlayerControllerComponent.LookDirectionX
+local AttackSpeed = Entity.ExtendPlayerComponent.AttackSpeed
+
+local CurrentAttackTime = _UtilLogic.ElapsedSeconds
+
+if CurrentAttackTime > self.PrevAttackTime + (1 / AttackSpeed) then
+	
+	if attackInfo == "Normal" then
+		-- 일반공격
+		attackSize = Entity.ExtendPlayerComponent.AttackRange
+		attackOffset = Entity.ExtendPlayerComponent.AttackOffset
+	else
+		-- 스킬공격
+		local attackIndex = tonumber(attackInfo)
+		local SkillData = self.SkillSlots[attackIndex]
+		
+		if self.IsSkillSet[attackIndex] and CurrentAttackTime > self.PrevSkillTime[attackIndex] + tonumber(SkillData["SkillCooldown"]/AttackSpeed) then
+			local Parent = SkillData["Parent"]
+			local options = self:GetEffectOptions(attackInfo)
+			local Position = Entity.TransformComponent.Position
+			
+			attackSize = SkillData["AttackRange"]
+			attackOffset = SkillData["AttackOffset"]
+			
+			_SoundService:PlaySoundAtPos(SkillData["SoundRUID"], Position, Entity, 0.25, self.Entity.Name)
+			
+			if Parent == "Player" then
+				_EffectService:PlayEffectAttached(SkillData["RUID"], Entity, Vector3.zero, 0, Vector3.one, false, options)
+			else
+				_EffectService:PlayEffect(SkillData["RUID"], Entity, Position, 0, Vector3.one, false, options)
+			end
+	
+			self:SkillCooldownUISet(attackInfo, tonumber(SkillData["SkillCooldown"]/AttackSpeed), Entity.Name)
+			self.PrevSkillTime[tonumber(attackInfo)] = CurrentAttackTime
+			
+			attackInfo = attackInfo .. "_" .. SkillData["EffectType"] .. "_" .. SkillData["EffectAmount"]
+		else
+			return
+		end
+	end
+	
+	self.PrevAttackTime = CurrentAttackTime
+	
+	self:ChangeState("ATTACK")
+	self:Attack(attackSize, Vector2(attackOffset.x * LookDirectionX, attackOffset.y), attackInfo)
+end
+
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="GetEffectOptions" ExecSpace="ServerOnly">
+      <Return Type="table" DefaultValue="{}" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="attackInfo" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 스킬 설정에 따라 옵션을 만듬
+
+local Entity = self.Entity
+local options = {}
+local LookDirectionX = Entity.PlayerControllerComponent.LookDirectionX
+
+local attackIndex = tonumber(attackInfo)
+local SkillData = self.SkillSlots[attackIndex]
+local AttackSpeed = Entity.ExtendPlayerComponent.AttackSpeed
+
+options["FlipX"] = (LookDirectionX == 1)
+options["PlayRate"] = SkillData["PlayRate"] * AttackSpeed
+return options
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="LoadSkillInfo" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="SkillName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- SkillInfo에 없는 스킬 정보를 읽어옴
+
+self.SkillInfo[SkillName] = {}
+
+local SkillInfo = self.SkillInfo[SkillName]
+local Skill_RowData = _DataService:GetTable("Skill"):FindRow("Name", SkillName)
+
+SkillInfo["Name"] = SkillName
+SkillInfo["RUID"] = Skill_RowData:GetItem("RUID")
+-- 착용중인 스킬을 팔려는 경우 IsSkillSet과 SkillSlots, ItemRefs를 비교해서 착용중인 스킬은 못팔게 막아야 함
+SkillInfo["ItemRef"] = self.Entity.ExtendInventoryComponent.ItemRefs[SkillName]
+SkillInfo["SoundRUID"] = Skill_RowData:GetItem("SoundRUID")
+SkillInfo["PlayRate"] = Skill_RowData:GetItem("PlayRate")
+SkillInfo["SkillCoeff"] = tonumber(Skill_RowData:GetItem("SkillCoeff"))
+SkillInfo["HitCount"] = tonumber(Skill_RowData:GetItem("HitCount"))
+SkillInfo["AttackRange"] = Vector2(tonumber(Skill_RowData:GetItem("AttackRange_x")), tonumber(Skill_RowData:GetItem("AttackRange_y")))
+SkillInfo["AttackOffset"] = Vector2(tonumber(Skill_RowData:GetItem("AttackOffset_x")), tonumber(Skill_RowData:GetItem("AttackOffset_y")))
+SkillInfo["SkillCooldown"] = tonumber(Skill_RowData:GetItem("SkillCooldown"))
+SkillInfo["Parent"] = Skill_RowData:GetItem("Parent")
+SkillInfo["EffectType"] = Skill_RowData:GetItem("EffectType")
+SkillInfo["EffectAmount"] = Skill_RowData:GetItem("EffectAmount")
+SkillInfo["SkillLevel"] = 1
+SkillInfo["UpgradeCount"] = 0
+SkillInfo["UpgradeMaxCount"] = 5
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetSkillSlot" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Index" Type="number" DefaultValue="0" SyncDirection="None" />
+        <CodeBlockProperty Name="SkillName" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 스킬 슬롯에 스킬 세팅
+-- 참조 형태로 스킬 정보를 읽어옴
+
+if SkillName ~= "" then
+	self.SkillSlots[Index] = self.SkillInfo[SkillName]
+	self.IsSkillSet[Index] = true
+else
+	self.SkillSlots[Index] = nil
+	self.IsSkillSet[Index] = false
+end
+
+--[[
+if SkillName ~=  "" then
+	local SkillSlot = self.SkillSlots[Index]
+	local SkillInfo = self.SkillInfo[SkillName]
+			
+	SkillSlot["Name"] = SkillInfo["Name"]
+	SkillSlot["RUID"] = SkillInfo["RUID"] 
+	-- 착용중인 스킬을 팔려는 경우 IsSkillSet과 SkillSlots, ItemRefs를 비교해서 착용중인 스킬은 못팔게 막아야 함
+	SkillSlot["ItemRef"] = SkillInfo["ItemRef"]
+	SkillSlot["SoundRUID"] = SkillInfo["SoundRUID"]
+	SkillSlot["PlayRate"] = SkillInfo["PlayRate"]
+	SkillSlot["SkillCoeff"] = SkillInfo["SkillCoeff"] 
+	SkillSlot["HitCount"] = SkillInfo["HitCount"]
+	SkillSlot["AttackRange"] = SkillInfo["AttackRange"]
+	SkillSlot["AttackOffset"] = SkillInfo["AttackOffset"]
+	SkillSlot["SkillCooldown"] = SkillInfo["SkillCooldown"]
+	SkillSlot["Parent"] = SkillInfo["SkillCooldown"]
+	SkillSlot["UpgradeCount"] = SkillInfo["UpgradeCount"]
+	SkillSlot["UpgradeMaxCount"] = SkillInfo["UpgradeMaxCount"]
+	
+	self.IsSkillSet[Index] = true
+else
+	self.SkillSlots[Index] = {}
+	self.IsSkillSet[Index] = false
+end
+]]
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="UpgradeSkill" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Index" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 스킬 업그레이드 버튼의 서버쪽 동작
+
+local SkillSlot = self.SkillSlots[Index]
+local IsSkillSet = self.IsSkillSet[Index]
+
+if IsSkillSet then
+	local UpgradeCount = SkillSlot["UpgradeCount"] + 1
+	local UpgradeMaxCount = SkillSlot["UpgradeMaxCount"]
+	local SkillLevel = SkillSlot["SkillLevel"]
+	local SkillCoeff = SkillSlot["SkillCoeff"]
+	local EffectAmount = tonumber(SkillSlot["EffectAmount"])
+	local ItemLevel = SkillSlot["ItemRef"].ItemLevel
+	
+	if UpgradeCount >= UpgradeMaxCount then
+		SkillLevel = SkillLevel + 1
+		UpgradeCount = 0
+		UpgradeMaxCount = UpgradeMaxCount + 3
+		SkillCoeff = SkillCoeff * (1 + ItemLevel/10) * (1 + (SkillLevel - 1)/10)
+		EffectAmount = EffectAmount * (1 + ItemLevel/10) * (1 + (SkillLevel - 1)/10)
+	end
+	
+	SkillSlot["UpgradeCount"] = UpgradeCount
+	SkillSlot["UpgradeMaxCount"] = UpgradeMaxCount
+	SkillSlot["SkillLevel"] = SkillLevel
+	SkillSlot["SkillCoeff"] = SkillCoeff
+	SkillSlot["EffectAmount"] = tostring(EffectAmount)
+	
+	-- SkillSlot의 테이블은 참조값이므로 SkillInfo의 값이 똑같이 연동됨
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="ChangeState" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="state" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if self.Entity.StateComponent.CurrentStateName ~= "DEAD" then
+	self.Entity.StateComponent:ChangeState(state)
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SkillCooldownUISet" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="attackInfo" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="Cooldown" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Shadow = nil
+
+if Environment:IsPCPlatform() then
+	Shadow = _EntityService:GetEntityByPath("/ui/DefaultGroup/SkillCooldownInfo/Skill_" .. attackInfo .. "/Shadow")
+else
+	Shadow = _EntityService:GetEntityByPath("/ui/DefaultGroup/MobileUI/SkillQuickSlot/SkillSlots/SkillSlot_".. attackInfo .. "/SkillIcon/Shadow")
+end
+
+if Cooldown > 1 then
+	Shadow.SpriteGUIRendererComponent.FillAmount = 1
+end
+
+_TimerService:SetTimerOnce(self:_SkillCooldownUISet(Shadow, Cooldown, Cooldown), 1)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="_SkillCooldownUISet" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Shadow" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+        <CodeBlockProperty Name="MaxCooldown" Type="number" DefaultValue="0" SyncDirection="None" />
+        <CodeBlockProperty Name="CurrentCooldown" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+return function()
+	CurrentCooldown = CurrentCooldown - 1
+	if CurrentCooldown > 0 then
+		Shadow.SpriteGUIRendererComponent.FillAmount = CurrentCooldown/MaxCooldown
+		_TimerService:SetTimerOnce(self:_SkillCooldownUISet(Shadow, MaxCooldown, CurrentCooldown), 1)
+	else
+		Shadow.SpriteGUIRendererComponent.FillAmount = 0
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="CalcDamage" ExecSpace="All">
+      <Return Type="int" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="attacker" Type="Entity" SyncDirection="None" />
+        <CodeBlockProperty Name="defender" Type="Entity" SyncDirection="None" />
+        <CodeBlockProperty Name="attackInfo" Type="string" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Entity = self.Entity
+local Attack = Entity.ExtendPlayerComponent.Attack
+local SkillCoeff = 0
+
+local attackType = _UtilLogic:Split(attackInfo, "_")[1]
+
+if attackType == "Normal" then
+	SkillCoeff = 1
+else
+	local attackIndex = tonumber(attackType)
+	SkillCoeff = self.SkillSlots[attackIndex]["SkillCoeff"]
+end
+
+return Attack * SkillCoeff
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="GetDisplayHitCount" ExecSpace="All">
+      <Return Type="int" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="attackInfo" Type="string" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Entity = self.Entity
+
+local attackType = _UtilLogic:Split(attackInfo, "_")[1]
+
+if attackType == "Normal" then
+	return 1
+else
+	local attackIndex = tonumber(attackType)
+	return self.SkillSlots[attackIndex]["HitCount"]
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="CalcCritical" ExecSpace="All">
+      <Return Type="boolean" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="attacker" Type="Entity" SyncDirection="None" />
+        <CodeBlockProperty Name="defender" Type="Entity" SyncDirection="None" />
+        <CodeBlockProperty Name="attackInfo" Type="string" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+--return __base:CalcCritical(attacker,defender,attackInfo)
+
+local IsCritical = self.Entity.ExtendPlayerComponent.CriticalRate > _UtilLogic:RandomDouble()
+return IsCritical
+
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="GetCriticalDamageRate" ExecSpace="All">
+      <Return Type="number" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+return self.Entity.ExtendPlayerComponent.CriticalDamageRate
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnAttack" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="defender" Type="Entity" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+__base:OnAttack(defender)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="IsAttackTarget" ExecSpace="All">
+      <Return Type="boolean" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="defender" Type="Entity" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if defender.TagComponent ~= nil then
+	if defender.StateComponent.CurrentStateName == "DEAD" 
+	or defender.TagComponent.Tags:Contains("enemy") == false then
+		return false
+	else
+		return __base:IsAttackTarget(defender)
+	end
+else
+	return false
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandlePlayerActionEvent" EventName="PlayerActionEvent" Target="self" Scope="Server">
+      <Code><![CDATA[
+-- Parameters
+local ActionName = event.ActionName
+local PlayerEntity = event.PlayerEntity
+--------------------------------------------------------
+
+if PlayerEntity.StateComponent.CurrentStateName == "DEAD" then
+	return
+end
+
+if ActionName == "Attack" then
+	self:NormalAttack("Normal")
+elseif ActionName == "Skill_1" then
+	self:NormalAttack("1")
+elseif ActionName == "Skill_2" then
+	self:NormalAttack("2")
+elseif ActionName == "Skill_3" then
+	self:NormalAttack("3")
+elseif ActionName == "Skill_4" then
+	self:NormalAttack("4")
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

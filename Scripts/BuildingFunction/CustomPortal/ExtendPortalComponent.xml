@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="c1dc161b-8c67-4102-9736-3dc8eebf9a1a" Language="Lua" Name="ExtendPortalComponent" Type="Extend" Source="None" Target="MOD.Core.PortalComponent" ModifyTime="2022-02-08T00:37:02.6429103+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="_PortalEntityRef" Type="Entity" DefaultValue="nil" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- CustomPortal 모델에서 사용하는 컴포넌트
+-- 포탈의 목적지 설정(클라이언트, 서버)
+-- 중간에 들어온 유저는 포탈 목적지 정보가 제대로 동기화되지 않는 문제 있음
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+self.PortalEntityRef = self._PortalEntityRef
+
+if self._PortalEntityRef ~= nil then
+	_UserService.LocalPlayer.InitRole:AddLog(self._PortalEntityRef:GetChildByName("Source").SourceTextComponent.Text)
+else
+	_UserService.LocalPlayer.InitRole:AddLog("nil")
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetDestination" ExecSpace="Multicast">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="DestinationEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+self.PortalEntityRef = DestinationEntity;
+self._PortalEntityRef = DestinationEntity;
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

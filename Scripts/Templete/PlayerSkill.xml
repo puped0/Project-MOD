@@ -1,0 +1,139 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="PlayerSkill" Language="Lua" Name="PlayerSkill" Type="Extend" Source="Template" Target="MOD.Core.AttackComponent" ModifyTime="2022-01-19T13:22:51.1728981+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="2" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="SkillCooldown" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="LastSkillUseTime" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="SkillButtonImage" Type="Component" DefaultValue="8705e648-c52a-4744-b52e-6ed7b80acc75:25" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+if self.Entity ~= _UserService.LocalPlayer then
+	return
+end
+
+local conditionFunc = function()
+	if self.Entity.StateComponent.CurrentStateName == "DEAD" then
+		return false
+	end
+	local current = _UtilLogic.ElapsedSeconds
+	if self.LastSkillUseTime + self.SkillCooldown < current then
+		return true
+	end
+	return false
+end
+
+self.Entity.PlayerControllerComponent:SetActionKey(KeyboardKey.Q, "Skill", conditionFunc)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="UseSkill" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+-- Effect
+local position = self.Entity.TransformComponent.Position
+position = Vector2(position.x, position.y)
+
+local playerController = self.Entity.PlayerControllerComponent
+local lookDirectionX = playerController.LookDirectionX
+position = position + Vector2(lookDirectionX * 0.2, 0)
+
+local length = 0
+
+local flipX = false
+if lookDirectionX == 1 then flipX = true end
+local args = { ["FlipX"] = flipX }
+	
+_EffectService:PlayEffect("a0ed97b38ce04e0ba8c2b6141a859d31",
+self.Entity, position, 0, Vector2(1.5, 1.5), length, args)
+self:PlaySkillUseSound()
+
+local attackPosition = position + Vector2(lookDirectionX * 1.75, 0)
+-- Delay Attack
+local delayAttack = function()
+	local size = Vector2(3.5, 1.5) 
+	local defenderComponents = self:AttackFrom(size, attackPosition, nil)
+	
+	for i, component in pairs(defenderComponents) do
+		local defenderEntity = component.Entity
+		local position = defenderEntity.TransformComponent.Position
+		position = Vector2(position.x, position.y)
+		_EffectService:PlayEffect("2e438afe70924bc1a6ae02d5f8a97444",
+defenderEntity, position, 0, Vector2(1, 1))
+		
+		self:PlaySkillHitSound()
+	end
+end
+
+_TimerService:SetTimerOnce(delayAttack, 0.6)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="GetDisplayHitCount" ExecSpace="All">
+      <Return Type="int" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="attackInfo" Type="string" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+return _UtilLogic:RandomIntegerRange(3, 6)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="CalcDamage" ExecSpace="All">
+      <Return Type="int" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="attacker" Type="Entity" SyncDirection="None" />
+        <CodeBlockProperty Name="defender" Type="Entity" SyncDirection="None" />
+        <CodeBlockProperty Name="attackInfo" Type="string" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+return 100
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="PlaySkillUseSound" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+_SoundService:PlaySound("afbb81b51fed47eaaee26cc403d59ccf")
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="PlaySkillHitSound" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+_SoundService:PlaySound("ca35cb7d0652411395a5bb90a5beecd3")
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnUpdate" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+if self.SkillButtonImage then
+	local ratio = (_UtilLogic.ElapsedSeconds - self.LastSkillUseTime) / self.SkillCooldown
+	ratio = math.min(ratio, 1)
+	self.SkillButtonImage.FillAmount = ratio
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandlePlayerActionEvent" EventName="PlayerActionEvent" Target="self" Scope="All">
+      <Code><![CDATA[
+-- Parameters
+local ActionName = event.ActionName
+local PlayerEntity = event.PlayerEntity
+--------------------------------------------------------
+if ActionName == "Skill" then
+	self.LastSkillUseTime = _UtilLogic.ElapsedSeconds
+	self.Entity.StateComponent:ChangeState("ATTACK", true)
+	self:UseSkill()
+end
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

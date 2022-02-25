@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="a8cdc392-d618-4dde-8f84-27780daf7b6d" Language="Lua" Name="BuildingHpBarTextComponent" Type="Extend" Source="None" Target="MOD.Core.TextComponent" ModifyTime="2022-02-08T00:45:00.5505056+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="MaxHp" Type="number" DefaultValue="0" SyncDirection="All" />
+    <CodeBlockProperty Name="Hp" Type="number" DefaultValue="0" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 건물 체력 관련 모델인 BuildingHpBarText 모델에서 사용하는 컴포넌트
+-- 현재 건물 체력 text로 표시 및 갱신
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+local Building = self.Entity.Parent.Parent
+
+wait(0.1)
+if Building.TagComponent.Tags:Contains("building") then
+	self.MaxHp = Building.Building.BuildingInfo["MaxHp"]
+	self.Hp = Building.Building.Hp
+elseif Building.TagComponent.Tags:Contains("monsterbuilding") then
+	self.MaxHp = Building.MonsterBuilding.MaxHp
+	self.Hp = Building.MonsterBuilding.Hp
+end
+
+self.Entity.TextComponent.FontSize = 30
+self.Text = math.floor(self.Hp) .. " / " .. math.floor(self.MaxHp)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetHp" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Hp" Type="number" DefaultValue="0" SyncDirection="None" />
+        <CodeBlockProperty Name="MaxHp" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+self.Hp = Hp
+self.MaxHp = MaxHp
+self.Text = math.floor(self.Hp) .. " / " .. math.floor(self.MaxHp)
+self.Entity.Parent:GetChildByName("BuildingHpBarForeground", true).InitBuildingHpBarForeground:SetHpBarSize(self.MaxHp, self.Hp)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

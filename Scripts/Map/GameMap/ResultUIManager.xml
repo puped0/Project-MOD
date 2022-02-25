@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="a621aebb-f822-4598-af8d-429f605caf91" Language="Lua" Name="ResultUIManager" Type="Component" Source="None" ModifyTime="2022-02-08T01:14:43.1383588+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/ResultUI/ResultPanel
+-- 게임 결과를 표시해주는 UI 제어
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetUI" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Enable" Type="boolean" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+self.Entity:SetVisible(Enable)
+self.Entity:SetEnable(Enable)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetResult" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Win" Type="boolean" SyncDirection="None" />
+        <CodeBlockProperty Name="UpgradePoint" Type="number" DefaultValue="0" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Result = self.Entity:GetChildByName("Result")
+local Point = self.Entity:GetChildByName("Point", true)
+
+if Win then
+	Result.TextComponent.Text = "승리!"
+else
+	Result.TextComponent.Text = "패배..."
+end
+
+Point.TextComponent.Text = tostring(UpgradePoint) .. " 포인트"
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

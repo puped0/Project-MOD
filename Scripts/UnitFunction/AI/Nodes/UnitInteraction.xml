@@ -1,0 +1,161 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="415f50a0-e50f-4f40-9b7b-1da125f92316" Language="Lua" Name="UnitInteraction" Type="BTNodeType" Source="None" ModifyTime="2022-02-08T03:12:32.7738482+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="CanClimb" Type="boolean" DefaultValue="false" SyncDirection="None" />
+    <CodeBlockProperty Name="Destination_y" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="Direction" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+    <CodeBlockProperty Name="TouchPoint" Type="Vector2" DefaultValue="Vector2(0,0)" SyncDirection="None" />
+    <CodeBlockProperty Name="InteractionEntity" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+    <CodeBlockProperty Name="CanTeleport" Type="boolean" DefaultValue="false" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 유닛의 건물과 상호작용(사다리, 포탈)
+
+if self.ParentAI.time >= self.ParentAI.tick then
+	local UnitEntity = self.ParentAI.Entity
+	
+	self.TouchPoint = self.ParentAI.Destination
+	self.InteractionEntity = self.ParentAI.InteractionEntity
+	
+	if self.InteractionEntity ~= nil then
+		if self.InteractionEntity.ClimbableComponent ~= nil then
+			if self.CanClimb == false then
+				
+				local UnitPosition = Vector2(UnitEntity.TransformComponent.Position.x, UnitEntity.TransformComponent.Position.y)
+				local UnitBoxOffset = UnitEntity.HitComponent.BoxOffset
+				local UnitBoxSize = UnitEntity.HitComponent.BoxSize
+				local UnitBottom = UnitPosition.y + UnitBoxOffset.y - UnitBoxSize.y/2
+				local UnitTop = UnitPosition.y + UnitBoxOffset.y + UnitBoxSize.y/2
+				
+				local LadderPosition = Vector2(self.InteractionEntity.TransformComponent.Position.x, self.InteractionEntity.TransformComponent.Position.y)
+				local LadderBoxOffset = self.InteractionEntity.TriggerComponent.BoxOffset
+				local LadderBoxSize = self.InteractionEntity.TriggerComponent.BoxSize
+				local LadderLeftBottom = LadderPosition + LadderBoxOffset - LadderBoxSize/2
+				local LadderRightTop = LadderPosition + LadderBoxOffset + LadderBoxSize/2
+				
+				
+				if (UnitPosition.x > LadderLeftBottom.x and UnitPosition.x < LadderRightTop.x) 
+				and ((UnitBottom > LadderLeftBottom.y and UnitBottom < LadderRightTop.y) or (UnitTop > LadderLeftBottom.y and UnitTop < LadderRightTop.y)) then					if self.TouchPoint.y > UnitPosition.y then
+						self.Destination_y = LadderRightTop.y
+						self.Direction = "Up"
+					else
+						self.Destination_y = LadderLeftBottom.y
+						self.Direction = "Down"
+					end
+					
+					self.CanClimb = true
+				end
+				
+				
+				--[[
+				local UnitPosition = Vector2(UnitEntity.TransformComponent.Position.x, UnitEntity.TransformComponent.Position.y)
+				local UnitBoxOffset = UnitEntity.HitComponent.BoxOffset
+				local UnitBoxSize = UnitEntity.HitComponent.BoxSize
+				local TriggerComponents = _CollisionService:GetMapServiceFor(UnitEntity):OverlapBox("TriggerBox", UnitPosition+UnitBoxOffset, Vector2(0.1, UnitBoxSize.y + 1))
+				
+				local LadderPosition = self.InteractionEntity.TransformComponent.Position
+				local LadderBoxOffset = self.InteractionEntity.TriggerComponent.BoxOffset
+				local LadderBoxSize = self.InteractionEntity.TriggerComponent.BoxSize
+				
+				for i, value in pairs(TriggerComponents) do
+					if value.Entity == self.InteractionEntity then
+						self.CanClimb = true
+						break
+					end
+				end
+				
+				if self.TouchPoint.y > UnitPosition.y then
+					self.Destination_y = LadderPosition.y + LadderBoxOffset.y + LadderBoxSize.y/2
+					self.Direction = "Up"
+				else 
+					self.Destination_y = LadderPosition.y + LadderBoxOffset.y - LadderBoxSize.y/2
+					self.Direction = "Down"
+				end
+				]]
+			else
+				self.ParentAI.time = 0
+
+				local Position = UnitEntity.TransformComponent.Position
+				
+				if UnitEntity.RigidbodyComponent.IsQuaterViewMove == false then
+					UnitEntity.RigidbodyComponent.IsQuaterViewMove = true
+					UnitEntity.StateComponent:ChangeState("CLIMB")
+					UnitEntity.MovementComponent:SetPosition(Vector2(Position.x, Position.y))
+				end
+				
+				if self.Direction == "Up" then
+					if self.Destination_y - 0.5 > Position.y then
+						UnitEntity.MovementComponent:MoveToDirection(Vector2(0,1), 1)
+						--log("climbing up")
+					else
+						self.Direction = "Stop"
+					end
+				elseif self.Direction == "Down" then
+					if self.Destination_y + 1 < Position.y then
+						UnitEntity.MovementComponent:MoveToDirection(Vector2(0,-1), 1)
+						--log("climbing down")
+					else
+						self.Direction = "Stop"
+					end
+				elseif self.Direction == "Stop" then
+					UnitEntity.RigidbodyComponent.IsQuaterViewMove = false
+					UnitEntity.StateComponent:ChangeState("IDLE")
+					UnitEntity.MovementComponent:Stop()
+					UnitEntity.MovementComponent:SetPosition(Vector2(Position.x, Position.y))
+					
+					self.ParentAI.InteractionEntity = nil
+					self.ParentAI.Range = 1.5
+					self.CanClimb = false
+				end
+				
+				return BehaviourTreeStatus.Success
+			end
+		elseif self.InteractionEntity.PortalComponent ~= nil then
+			if self.CanTeleport == false then
+				local UnitPosition = UnitEntity.TransformComponent.Position
+				local UnitBoxOffset = UnitEntity.HitComponent.BoxOffset
+				local UnitCenter = UnitPosition + Vector3(UnitBoxOffset.x, UnitBoxOffset.y, 0)
+				
+				local PortalEntity = self.InteractionEntity
+				local PortalPosition = Vector2(PortalEntity.TransformComponent.Position.x, PortalEntity.TransformComponent.Position.y)
+				local PortalBoxOffset = PortalEntity.TriggerComponent.BoxOffset
+				local PortalBoxSize = PortalEntity.TriggerComponent.BoxSize
+				
+				local PortalLeftBottom = PortalPosition + PortalBoxOffset - PortalBoxSize/2
+				local PortalRightTop = PortalPosition + PortalBoxOffset + PortalBoxSize/2
+				
+				if (UnitCenter.x > PortalLeftBottom.x and UnitCenter.x < PortalRightTop.x) and (UnitCenter.y > PortalLeftBottom.y and UnitCenter.y < PortalRightTop.y) then
+					self.CanTeleport = true
+				end
+			else
+				local PortalEntity = self.InteractionEntity
+				local DestinationPortalEntity = PortalEntity.ExtendPortalComponent._PortalEntityRef
+				
+				if isvalid(DestinationPortalEntity) then
+					_TeleportService:TeleportToEntity(UnitEntity, DestinationPortalEntity)
+					self.ParentAI.Destination = Vector2(DestinationPortalEntity.TransformComponent.Position.x, DestinationPortalEntity.TransformComponent.Position.y)
+				end
+				
+				self.CanTeleport = false
+				self.ParentAI.InteractionEntity = nil
+				return BehaviourTreeStatus.Success
+			end
+		end
+	end
+end
+
+return BehaviourTreeStatus.Failure
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

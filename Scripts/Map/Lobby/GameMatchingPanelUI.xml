@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="ab35b8db-fe48-411b-80b8-cb5080da3382" Language="Lua" Name="GameMatchingPanelUI" Type="Component" Source="None" ModifyTime="2022-02-08T01:27:10.2199258+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties />
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /ui/GameMatchingUI/GameMatchingPanel
+-- 매칭중... 관련 UI 코드
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="MatchingStartPanelOn" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 매칭중 ... UI 띄워줌
+
+local Entity = self.Entity
+local MatchingState = Entity:GetChildByName("MatchingState", true)
+local MatchingMessage = Entity:GetChildByName("MatchingMessage", true)
+
+MatchingState.TextComponent.Text = "매칭중 ..."
+MatchingMessage.TextComponent.Text = ""
+
+Entity:SetVisible(true)
+Entity:SetEnable(true)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="MatchingSuccessUI" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 매칭 성공 시 UI 글자 설정...
+-- 매칭중 ... UI 끔
+local Entity = self.Entity
+
+Entity:SetVisible(false)
+Entity:SetEnable(false)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers>
+    <CodeBlockEntityEventHandler Name="HandleButtonClickEvent" EventName="ButtonClickEvent" Target="entity:148a4c26-e68b-4ce1-977f-fde2f9d87286" Scope="Client">
+      <Code><![CDATA[
+-- Parameters
+local Entity = event.Entity
+--------------------------------------------------------
+
+-- 매칭 취소 동작
+
+local LocalPlayer = _UserService.LocalPlayer
+local GameMatchManager = LocalPlayer.CurrentMap.GameMatchManager
+local GameMatchingPanel = Entity.Parent
+
+GameMatchingPanel:SetVisible(false)
+GameMatchingPanel:SetEnable(false)
+
+GameMatchManager:MultiGameMatchCancel(LocalPlayer.Name, Environment:IsPCPlatform())
+
+]]></Code>
+    </CodeBlockEntityEventHandler>
+  </EntityEventHandlers>
+</CodeBlockFile>

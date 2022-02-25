@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="fe556b81-f984-4a4e-8f17-3367a323d198" Language="Lua" Name="UnitHitComponent" Type="Extend" Source="None" Target="MOD.Core.HitComponent" ModifyTime="2022-02-08T03:11:10.3606879+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="LastHitTime" Type="number" DefaultValue="0" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- 모든 Unit에서 사용
+-- Unit의 피격 관련 코드
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="IsHitTarget" ExecSpace="All">
+      <Return Type="boolean" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+local ImmuneCooldown = self.Entity.Unit.UnitInfo["ImmuneCooldown"]
+local currentTime = _UtilLogic.ElapsedSeconds
+
+if self.LastHitTime + ImmuneCooldown < currentTime then
+	self.LastHitTime = _UtilLogic.ElapsedSeconds
+	return true
+end
+
+return false
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnHit" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="attacker" Type="Entity" SyncDirection="None" />
+        <CodeBlockProperty Name="damage" Type="int" SyncDirection="None" />
+        <CodeBlockProperty Name="isCritical" Type="boolean" SyncDirection="None" />
+        <CodeBlockProperty Name="attackInfo" Type="string" SyncDirection="None" />
+        <CodeBlockProperty Name="hitCount" Type="int" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local Entity = self.Entity
+local Defence = Entity.Unit.UnitInfo["Defence"]
+
+if damage > 0 then
+	if Defence < damage then
+		__base:OnHit(attacker,damage - Defence,isCritical,attackInfo,hitCount)
+	end
+else
+	local HealEffect = "9acc7ba7139143f9a3077dc9aca435cd"
+	_EffectService:PlayEffectAttached(HealEffect, Entity, Vector3.zero, 0, Vector3.one, false)
+	Entity.Unit:CalcDmg(damage)
+end
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

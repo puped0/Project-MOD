@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="54817cbb-b931-448a-81b2-a4819225d33d" Language="Lua" Name="DestinationTextComponent" Type="Extend" Source="None" Target="MOD.Core.TextComponent" ModifyTime="2022-02-08T00:40:25.5868744+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="Destination" Type="string" DefaultValue="&quot;&quot;" SyncDirection="All" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- CustomPortal 모델의 자식 엔티티인 Desination 모델에서 사용하는 컴포넌트
+-- 목적지 text 설정 관련 코드
+-- 포탈의 목적지를 보여줌
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ClientOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+self.Entity.DestinationTextComponent.Text = self.Destination
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SetDestinationText" ExecSpace="Multicast">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Destination" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+self.Destination = Destination
+self.Text = Destination
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

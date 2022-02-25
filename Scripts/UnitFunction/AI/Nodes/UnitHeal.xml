@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="3377e9d1-0cc2-4948-8bb6-831a02a91752" Language="Lua" Name="UnitHeal" Type="BTNodeType" Source="None" ModifyTime="2022-02-08T23:40:19.9600654+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="PrevAttackTime" Type="number" DefaultValue="0" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="OnBehave" ExecSpace="All">
+      <Return Type="any" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="delta" Type="number" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- Healer 유닛의 Heal 관련 로직
+
+if self.ParentAI.time >= self.ParentAI.tick then
+	local UnitEntity = self.ParentAI.Entity
+	local UnitAIComp = UnitEntity.UnitAIComponent
+	local UnitInfo = UnitEntity.Unit.UnitInfo
+	local CurrentAttackTime = _UtilLogic.ElapsedSeconds
+	local CurrentState = UnitEntity.StateComponent.CurrentStateName
+	
+	-- 공격명령을 너무 충실히 수행해서 못움직이므로(후퇴 불가)
+	-- IDLE 상태일 때만 공격 가능하게 함
+	if isvalid(UnitAIComp.TargetEntity) and CurrentAttackTime >= self.PrevAttackTime + UnitInfo["AttackCooldown"] and CurrentState == "IDLE" then
+		local AttackRange = UnitInfo["AttackRange"]
+		local AttackOffset = UnitInfo["AttackRange"]
+		local UnitPosition = Vector2(UnitEntity.TransformComponent.Position.x, UnitEntity.TransformComponent.Position.y)
+		local TargetPosition = UnitAIComp.TargetEntity.TransformComponent.Position
+		
+		if TargetPosition.x < (UnitPosition.x - AttackOffset.x - AttackRange.x/2) or TargetPosition.x > (UnitPosition.x + AttackOffset.x + AttackRange.x/2) then
+			return BehaviourTreeStatus.Failure
+		else
+			self.ParentAI.time = 0
+			self.PrevAttackTime = CurrentAttackTime
+			
+			UnitEntity.SpriteRendererComponent.FlipX = (TargetPosition.x > UnitPosition.x)
+			
+			UnitEntity.MovementComponent:Stop()
+			UnitEntity.StateComponent:ChangeState("ATTACK")
+			UnitEntity.UnitAttackComponent:Heal()
+			
+			return BehaviourTreeStatus.Success
+		end
+	end
+end
+
+return BehaviourTreeStatus.Failure
+
+
+--[[
+참고용 옛날코드 ... 성능 많이먹음
+local UnitEntity = self.ParentAI.Entity
+local CurrentAttackTime = _UtilLogic.ElapsedSeconds
+
+local UnitInfo = UnitEntity.Unit.UnitInfo
+
+if self.ParentAI.time >= self.ParentAI.tick and CurrentAttackTime >= self.PrevAttackTime + UnitInfo["AttackCooldown"] then
+	local CanAttack = false
+	local CurrentState = UnitEntity.StateComponent.CurrentStateName
+	
+	local v3UnitPosition = UnitEntity.TransformComponent.Position
+	local UnitPosition = Vector2(v3UnitPosition.x, v3UnitPosition.y)
+	
+	local BoxOffset = UnitEntity.HitComponent.BoxOffset
+	local BoxSize = UnitInfo["AttackRange"]
+	
+	local HitComponents = _CollisionService:GetMapServiceFor(UnitEntity):OverlapBox("HitBox", UnitPosition + BoxOffset, BoxSize)
+	local FlipX = false
+	
+	if HitComponents.Count <= 1 then
+		return BehaviourTreeStatus.Failure
+	end
+	
+	for i, value in pairs(HitComponents) do
+		local TagComponent = value.Entity.TagComponent
+		if TagComponent ~= nil and value.Entity.StateComponent.CurrentStateName ~= "DEAD" then
+			local MaxHp = 0
+			local Hp = 0
+			if TagComponent.Tags:Contains("unit") then
+				local Unit = value.Entity.Unit
+				MaxHp = Unit.UnitInfo["MaxHp"]
+				Hp = Unit.Hp
+			elseif TagComponent.Tags:Contains("player") then
+				local player = value.Entity.PlayerComponent
+				MaxHp = player.MaxHp
+				Hp = player.Hp
+			end
+			
+			if Hp < MaxHp and value.Entity ~= UnitEntity then
+				CanAttack = true
+				break
+			end
+		end
+	end
+	
+	if CanAttack == true and CurrentState == "IDLE"  then
+	--if CanAttack == true then
+		self.ParentAI.time = 0
+		self.PrevAttackTime = CurrentAttackTime
+		
+		UnitEntity.MovementComponent:Stop()
+		UnitEntity.SpriteRendererComponent.FlipX = FlipX
+		UnitEntity.StateComponent:ChangeState("ATTACK")
+		
+		UnitEntity.UnitAttackComponent:Heal(HitComponents)
+		
+		return BehaviourTreeStatus.Success
+	else
+		return BehaviourTreeStatus.Failure
+	end
+end
+
+return BehaviourTreeStatus.Failure
+]]
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>

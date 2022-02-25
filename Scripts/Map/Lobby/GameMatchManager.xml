@@ -1,0 +1,174 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeBlockFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="a62ea570-41a9-48be-8a0f-9b7f42a42282" Language="Lua" Name="GameMatchManager" Type="Component" Source="None" ModifyTime="2022-02-08T01:24:18.635139+09:00">
+  <CoreVersion Major="0" Minor="2" />
+  <ScriptVersion Major="1" Minor="0" />
+  <Description />
+  <Properties>
+    <CodeBlockProperty Name="RoomIndex" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="PCWaitQueue" Type="dictionary" DefaultValue="string|Entity" SyncDirection="None" />
+    <CodeBlockProperty Name="MobileWaitQueue" Type="dictionary" DefaultValue="string|Entity" SyncDirection="None" />
+    <CodeBlockProperty Name="PCWaitQueueCount" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="MobileWaitQueueCount" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="MinPlayerPerGame" Type="number" DefaultValue="0" SyncDirection="None" />
+    <CodeBlockProperty Name="MaxPlayerPerGame" Type="number" DefaultValue="0" SyncDirection="None" />
+  </Properties>
+  <Methods>
+    <CodeBlockMethod Name="description" ExecSpace="All">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+-- /maps/Lobby
+-- 게임 매칭 관련 컴포넌트
+-- 혼자하기, 같이하기 구현
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="OnBeginPlay" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+self.MinPlayerPerGame = 2
+self.MaxPlayerPerGame = 5
+
+-- 10초마다 플레이어를 찾아 매칭함
+_TimerService:SetTimerRepeat(self.SearchUsers, 10, 0)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="StartSoloGame" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Player" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+local InstanceMap = _InstanceMapService:GetOrCreateInstanceMap("GameMap" .. tostring(self.RoomIndex))
+self.RoomIndex = self.RoomIndex + 1
+
+InstanceMap:MoveUser(Player.Name)
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="MultiGameMatchStart" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Name" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="User" Type="Entity" DefaultValue="nil" SyncDirection="None" />
+        <CodeBlockProperty Name="IsPC" Type="boolean" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 같이하기 버튼을 눌러서 매칭 대기열에 플레이어를 넣음
+if IsPC then
+	if self.PCWaitQueue[Name] == nil then
+		self.PCWaitQueueCount = self.PCWaitQueueCount + 1
+		self.PCWaitQueue[Name] = User
+	end
+else
+	if self.MobileWaitQueue[Name] == nil then
+		self.MobileWaitQueueCount = self.MobileWaitQueueCount + 1
+		self.MobileWaitQueue[Name] = User
+	end
+end
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="MultiGameMatchCancel" ExecSpace="Server">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="Name" Type="string" DefaultValue="&quot;&quot;" SyncDirection="None" />
+        <CodeBlockProperty Name="IsPC" Type="boolean" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 매칭중... UI에서 취소를 눌러 매칭 대기열에서 플레이어를 삭제
+if IsPC then
+	if self.PCWaitQueue[Name] ~= nil then
+		self.PCWaitQueueCount = self.PCWaitQueueCount - 1
+		self.PCWaitQueue[Name] = nil
+	end
+else
+	if self.MobileWaitQueue[Name] ~= nil then
+		self.MobileWaitQueueCount = self.MobileWaitQueueCount - 1
+		self.MobileWaitQueue[Name] = nil
+	end
+end
+
+log("Matching Cancel")
+-- 유저가 제거되었으므로 기존 매칭을 취소하고 새로 매칭이 가능한지 확인
+-- 이동 시간이 있을 경우 매칭된 팀을 해제해야 하지만
+-- 이동 시간이 없으면 그냥 큐에서 삭제만 하면 됨
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="SearchUsers" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Code><![CDATA[
+--log("Searching Users...")
+
+-- 타이머에 의해 10초에 한 번 호출되는 함수
+
+-- if를 while로 바꿔서 한번에 여러번 방 만들 수 있게 바꾸는게 좋겠음
+-- PC 유저가 최소 한 명은 있어야 하고(건축가 역할), 인원이 최소 2명은 있어야 매칭됨
+while self.PCWaitQueueCount >= 1 and self.PCWaitQueueCount + self.MobileWaitQueueCount >= self.MinPlayerPerGame do
+	local MatchUsers = {}
+	local UserCount = 0
+	
+	for PCName, PCUser in pairs(self.PCWaitQueue) do
+		---------------- PC 유저에서 한 명 뽑기 -------------
+		---------------- 첫 번째 유저는 반드시 PC 유저임 ----
+		table.insert(MatchUsers, PCUser.Name)
+		UserCount = UserCount + 1
+		
+		self.PCWaitQueue[PCName] = nil
+		self.PCWaitQueueCount = self.PCWaitQueueCount - 1
+		
+		if UserCount >= self.MaxPlayerPerGame then
+			break
+		end
+		
+		---------------- Mobile 유저에서 한 명 뽑기 --------------------
+		---------------- 없으면 안 뽑음 --------------------------------
+		for MobileName, MobileUser in pairs(self.MobileWaitQueue) do
+			table.insert(MatchUsers, MobileUser.Name)
+			UserCount = UserCount + 1
+			
+			self.MobileWaitQueue[MobileName] = nil
+			self.MobileWaitQueueCount = self.MobileWaitQueueCount - 1
+			
+			break
+		end
+		
+		if UserCount >= self.MaxPlayerPerGame then
+			break
+		end
+	end
+	
+	--log("Searched Users!")
+	for Name, Entity in pairs(MatchUsers) do
+		self:GameMatchSuccess(Entity)
+	end
+	
+	self:StartMultiGame(MatchUsers)
+end
+
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="GameMatchSuccess" ExecSpace="Client">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments />
+      <Code><![CDATA[
+-- 매칭 성공시 UI 설정
+-- 현재는 그냥 UI를 끔
+
+local GameMatchingPanel = _EntityService:GetEntityByPath("/ui/GameMatchingUI/GameMatchingPanel")
+GameMatchingPanel.GameMatchingPanelUI:MatchingSuccessUI()
+]]></Code>
+    </CodeBlockMethod>
+    <CodeBlockMethod Name="StartMultiGame" ExecSpace="ServerOnly">
+      <Return Type="void" SyncDirection="None" />
+      <Arguments>
+        <CodeBlockProperty Name="MatchUsers" Type="dictionary" DefaultValue="number|Entity" SyncDirection="None" />
+      </Arguments>
+      <Code><![CDATA[
+-- 인스턴스 맵을 생성해 매칭된 유저를 텔레포트 시킴
+
+local InstanceMap = _InstanceMapService:GetOrCreateInstanceMap("GameMap" .. tostring(self.RoomIndex))
+self.RoomIndex = self.RoomIndex + 1
+
+InstanceMap:MoveUsers(MatchUsers)
+]]></Code>
+    </CodeBlockMethod>
+  </Methods>
+  <EntityEventHandlers />
+</CodeBlockFile>
